@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
-import { LayoutGrid, ArrowRight } from "lucide-react"
+import { LayoutGrid, ArrowRight, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
@@ -35,6 +35,12 @@ export default async function PlanogramasPage() {
             Simulador visual de estante con heatmap GMROI y swap de SKUs
           </p>
         </div>
+        <Button asChild style={{ background: "var(--brand-magenta)", color: "#fff" }}>
+          <Link href="/planogramas/nuevo">
+            <Plus className="h-4 w-4 mr-1" />
+            Nuevo planograma
+          </Link>
+        </Button>
       </div>
 
       {!planogramas?.length ? (
