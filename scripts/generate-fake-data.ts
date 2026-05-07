@@ -117,27 +117,99 @@ function generarTiendas(n: number, rand: () => number) {
 }
 
 // ----------------------------------------------------------------------------
-// Estacionalidad
+// Benchmarks reales beauty retail Chile (investigación mercado 2024-2025)
+// Fuentes: NIQ State of Beauty 2025, Kantar Chile, Ulta/Sephora financials,
+//          ICEX Sector Cosmética Chile, Mordor Intelligence
+// ----------------------------------------------------------------------------
+
+// Margen bruto por categoría (% sobre precio venta)
+const MARGEN_POR_CATEGORIA: Record<string, { min: number; max: number }> = {
+  maquillaje: { min: 0.55, max: 0.70 }, // 55–70% — color cosmetics, alta rotación
+  skincare:   { min: 0.50, max: 0.60 }, // 50–60% — importado premium
+  perfumes:   { min: 0.50, max: 0.65 }, // 50–65% — marcas premium
+  capilar:    { min: 0.45, max: 0.55 }, // 45–55% — capilar premium importado
+  corporal:   { min: 0.45, max: 0.60 }, // 45–60% — según marca
+};
+
+// Inventario target en semanas (basado en lead time + benchmarks)
+// Importados (EE.UU./Europa→Chile marítimo): 30-50 días + buffer → 10-14 semanas
+// MDI saludable: 2.0–2.5 meses → ~9-11 semanas
+const SEMANAS_INV_TARGET: Record<string, number> = {
+  maquillaje: 9,   // rotación 5-6x/año → ~2 meses ideal
+  skincare:   11,  // rotación 3.5-4.5x/año → ~2.5 meses
+  perfumes:   13,  // rotación 3-4x/año → ~3 meses (más lento)
+  capilar:    10,  // rotación 4-5x/año → ~2.4 meses
+  corporal:   11,  // similar a skincare
+};
+
+// Rotación anual por categoría (inventory turnover)
+// GMROI target = margen × turnover → maquillaje: 0.625 × 5.5 = 3.4–4.3
+const TURNOVER_ANUAL: Record<string, number> = {
+  maquillaje: 5.5, // 5–6x/año (benchmark Ulta ~5.5)
+  skincare:   4.0, // 3.5–4.5x/año
+  perfumes:   3.5, // 3–4x/año
+  capilar:    4.5, // 4–5x/año
+  corporal:   4.0, // 3.5–4.5x/año
+};
+
+// ----------------------------------------------------------------------------
+// Estacionalidad Chile (benchmarks reales)
+// Q4 Oct-Dic: +30-50%, Q1 Ene-Mar: -15-25%, Q2 Abr-Jun: +10-20%
 // ----------------------------------------------------------------------------
 function factorEstacional(mes: number /* 0-11 */, categoriaRoot: string): number {
-  // Base 1.0, peaks por mes y categoría
   let f = 1.0;
-  if (mes === 4 /* mayo */) f *= 1.35; // Día de la Madre
-  if (mes === 1 /* feb */) f *= 1.20; // San Valentín (sobre todo labios, perfumes)
-  if (mes === 11 /* dic */) f *= 1.45; // Navidad
-  if (mes === 6 /* julio */ && categoriaRoot === "skincare") f *= 1.10;
-  if (mes === 7 /* ago */ && categoriaRoot === "skincare") f *= 1.15;
+
+  // Navidad/Año Nuevo (diciembre): peak principal +40% — todas las categorías
+  if (mes === 11) f *= 1.42;
+
+  // Pre-navidad (noviembre): anticipación compras +20%
+  if (mes === 10) f *= 1.20;
+
+  // Octubre: inicio temporada alta +10%
+  if (mes === 9) f *= 1.10;
+
+  // Día de la Madre (mayo): segundo peak Chile +30%
+  if (mes === 4) f *= 1.32;
+
+  // San Valentín (febrero): labios y perfumes principalmente
+  if (mes === 1) {
+    f *= 1.18;
+    if (categoriaRoot === "perfumes") f *= 1.10; // extra boost perfumes
+    if (categoriaRoot === "maquillaje") f *= 1.08;
+  }
+
+  // Invierno (junio-agosto): skincare sube, otras bajan levemente
+  if (mes === 5 || mes === 6 || mes === 7) {
+    if (categoriaRoot === "skincare") f *= 1.15;
+    else if (categoriaRoot === "corporal") f *= 1.10;
+    else f *= 0.92; // otras categorías caen levemente en invierno
+  }
+
+  // Verano (enero-marzo): post-holidays, presupuesto bajo → -15-25%
+  if (mes === 0) f *= 0.82; // enero: post-navidad, muy bajo
+  if (mes === 2) f *= 0.88; // marzo: fin verano
+
+  // Primavera (septiembre): recuperación +10%
+  if (mes === 8) f *= 1.08;
+
   return f;
 }
 
-// Power-law weights: rank → weight (Pareto 80/20)
+// Power-law weights: beauty más concentrado que 80/20
+// Benchmark real: 20% SKUs → 70-80% ventas (alpha ~1.2)
 function paretoWeights(n: number): number[] {
   const w: number[] = [];
   for (let i = 0; i < n; i++) {
-    w.push(1 / Math.pow(i + 1, 1.16)); // alpha ≈ 1.16 → 80/20 aprox
+    w.push(1 / Math.pow(i + 1, 1.22)); // alpha 1.22 → 75/20 aprox (más concentrado)
   }
   const sum = w.reduce((a, b) => a + b, 0);
   return w.map((x) => x / sum);
+}
+
+// Retorna margen bruto unitario según categoría (fracción del precio venta)
+function margenPorCategoria(catRoot: string, rand: () => number): number {
+  const rango = MARGEN_POR_CATEGORIA[catRoot] ?? { min: 0.48, max: 0.58 };
+  return rango.min + rand() * (rango.max - rango.min);
 }
 
 // ----------------------------------------------------------------------------
@@ -224,8 +296,14 @@ async function main() {
     const pop = skuPopularidad.get(sku.id)!;
     const cat = (sku.categorias as { ruta?: string } | null)?.ruta ?? "";
     const catRoot = cat.split("/")[0];
-    // ventas mensuales esperadas a nivel global (chain)
-    const baseUnitsChain = pop * 50000; // total cadena por mes en unidades
+    // Ventas mensuales esperadas basadas en rotación real por categoría
+    // turnover anual × precio promedio → ingreso anual → unidades/mes/tienda
+    // Ej: maquillaje 5.5x, precio ~$8.000 CLP → ~3.5 unidades/mes por SKU top
+    const turnover = TURNOVER_ANUAL[catRoot] ?? 4.0;
+    // baseUnitsChain: unidades totales de la cadena por mes para este SKU
+    // SKU top (pop=max) vende ~turnover/12 * (precio/costo) unidades/tienda
+    // Escalamos por popularidad (power-law ya aplicado en pop)
+    const baseUnitsChain = pop * args.stores * turnover * 1.2; // ~1.2 unidades/mes promedio en tienda top
 
     for (const tienda of tiendasCreated!) {
       // Tienda factor (pequeña variación por tienda)
@@ -239,23 +317,33 @@ async function main() {
         const isoMonth = fecha.toISOString().slice(0, 10);
 
         const seasonal = factorEstacional(fecha.getMonth(), catRoot);
-        const noise = 0.7 + rand() * 0.6;
+        // Ruido realista: ±30% (beauty tiene varianza moderada-alta)
+        const noise = 0.70 + rand() * 0.60;
         const expectedUnits = (baseUnitsChain / args.stores) * tiendaFactor * seasonal * noise;
+
+        // Promociones: 15% de frecuencia, descuento 10–35% (beauty standard)
         const promo = rand() < 0.15;
         const descuento_pct = promo ? 10 + Math.round(rand() * 25) : 0;
+        // Boost de ventas en promo: +35-45% (beauty promo lift benchmark)
+        const promoLift = promo ? 1.35 + rand() * 0.10 : 1.0;
 
         const stockInicio = stockFin;
-        // Recibido: target 10 semanas de cobertura
-        const targetCobertura = expectedUnits * (10 / 4.3);
+        // Target de cobertura por categoría (benchmarks reales)
+        const semanasTarget = SEMANAS_INV_TARGET[catRoot] ?? 10;
+        const targetCobertura = expectedUnits * (semanasTarget / 4.3);
         const recibido = Math.max(0, Math.round(targetCobertura - stockInicio + expectedUnits));
         const disponible = stockInicio + recibido;
 
-        const unidades = Math.max(0, Math.min(disponible, Math.round(expectedUnits * (promo ? 1.4 : 1.0))));
+        const unidades = Math.max(0, Math.min(disponible, Math.round(expectedUnits * promoLift)));
         stockFin = disponible - unidades;
 
         const precioBase = sku.precio_lista || 0;
         const precioVenta = precioBase * (1 - descuento_pct / 100);
-        const costo = (sku.costo_unitario ?? precioBase * 0.5) * unidades;
+
+        // Costo basado en margen real de la categoría (no fijo 50%)
+        const margenFrac = margenPorCategoria(catRoot, rand);
+        const costoUnitario = sku.costo_unitario ?? precioBase * (1 - margenFrac);
+        const costo = costoUnitario * unidades;
         const ingreso = precioVenta * unidades;
 
         ventasBuffer.push({
@@ -271,9 +359,10 @@ async function main() {
         });
 
         const stockProm = (stockInicio + stockFin) / 2;
-        const costoInv = stockProm * (sku.costo_unitario ?? precioBase * 0.5);
-        const diasStock = unidades > 0 ? (stockProm / unidades) * 30 : 365;
-        const mdiMeses = unidades > 0 ? stockProm / unidades : 12;
+        const costoInv = stockProm * costoUnitario;
+        // MDI saludable beauty: 1.5–3 meses. Cap en 12 para obsoletos.
+        const diasStock = unidades > 0 ? Math.min(365, (stockProm / unidades) * 30) : 180;
+        const mdiMeses = unidades > 0 ? Math.min(12, stockProm / unidades) : 6;
 
         invBuffer.push({
           sku_id: sku.id,
