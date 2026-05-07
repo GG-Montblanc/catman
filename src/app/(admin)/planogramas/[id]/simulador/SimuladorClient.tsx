@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { ShelfSVG } from "./ShelfSVG"
 import { SkuSwapDialog } from "./SkuSwapDialog"
 import { ScenarioPanel } from "./ScenarioPanel"
+import { PublicarButton } from "./PublicarButton"
 import type { PlanogramData, PlanogramSlot, SlotKpis, PendingSwap } from "@/lib/planogram/types"
 import type { HeatmapLayer } from "@/lib/heatmap/colorScale"
 
@@ -58,11 +59,14 @@ export function SimuladorClient({ planograma }: Props) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">{planograma.nombre}</h2>
-          <p className="text-xs text-muted-foreground">
-            {planograma.tienda.nombre} · {planograma.n_bandejas} bandejas × {planograma.n_posiciones} posiciones
-          </p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div>
+            <h2 className="text-lg font-semibold">{planograma.nombre}</h2>
+            <p className="text-xs text-muted-foreground">
+              {planograma.tienda.nombre} · {planograma.n_bandejas} bandejas × {planograma.n_posiciones} posiciones
+            </p>
+          </div>
+          <PublicarButton planogramaId={planograma.id} />
         </div>
 
         {/* Layer toggle */}
