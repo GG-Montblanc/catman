@@ -11,7 +11,8 @@
  *   npm run seed:planogramas
  */
 
-import "dotenv/config"
+import { config } from "dotenv";
+config({ path: ".env.local" })
 import { createClient } from "@supabase/supabase-js"
 
 const supabase = createClient(

@@ -240,23 +240,33 @@ LANGUAGE sql
 STABLE
 SECURITY DEFINER
 AS $$
+  -- Agregar primero en subquery, luego json_agg sobre filas ya agregadas
   SELECT json_agg(
     json_build_object(
-      'cat_id',       cat_root.id,
-      'cat_nombre',   cat_root.nombre,
-      'tienda_id',    t.id,
-      'tienda_nombre', t.nombre,
-      'avg_gmroi',    ROUND(AVG(m.gmroi) FILTER (WHERE m.gmroi > 0 AND m.gmroi < 100), 2),
-      'total_ingreso', SUM(m.ingreso)
+      'cat_id',        r.cat_id,
+      'cat_nombre',    r.cat_nombre,
+      'tienda_id',     r.tienda_id,
+      'tienda_nombre', r.tienda_nombre,
+      'avg_gmroi',     r.avg_gmroi,
+      'total_ingreso', r.total_ingreso
     )
   )
-  FROM public.mv_sku_kpis_mensual m
-  JOIN public.skus            s        ON s.id   = m.sku_id
-  JOIN public.categorias      cat      ON cat.id = s.categoria_id
-  JOIN public.categorias      cat_root ON cat_root.ruta = split_part(cat.ruta, '/', 1)
-  JOIN public.tiendas         t        ON t.id   = m.tienda_id
-  WHERE m.anio_mes BETWEEN p_desde AND p_hasta
-  GROUP BY cat_root.id, cat_root.nombre, t.id, t.nombre;
+  FROM (
+    SELECT
+      cat_root.id      AS cat_id,
+      cat_root.nombre  AS cat_nombre,
+      t.id             AS tienda_id,
+      t.nombre         AS tienda_nombre,
+      ROUND(AVG(m.gmroi) FILTER (WHERE m.gmroi > 0 AND m.gmroi < 100), 2) AS avg_gmroi,
+      SUM(m.ingreso)   AS total_ingreso
+    FROM public.mv_sku_kpis_mensual m
+    JOIN public.skus            s        ON s.id   = m.sku_id
+    JOIN public.categorias      cat      ON cat.id = s.categoria_id
+    JOIN public.categorias      cat_root ON cat_root.ruta = split_part(cat.ruta, '/', 1)
+    JOIN public.tiendas         t        ON t.id   = m.tienda_id
+    WHERE m.anio_mes BETWEEN p_desde AND p_hasta
+    GROUP BY cat_root.id, cat_root.nombre, t.id, t.nombre
+  ) r;
 $$;
 
 -- ============================================================================

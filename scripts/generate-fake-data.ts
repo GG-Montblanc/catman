@@ -12,7 +12,8 @@
  *   npm run seed:fake -- --months 24 --stores 50
  */
 
-import "dotenv/config";
+import { config } from "dotenv";
+config({ path: ".env.local" });
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -148,6 +149,29 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
+async function insertWithRetry(
+  table: string,
+  rows: Record<string, unknown>[],
+  batchSize = 500,
+  maxRetries = 3,
+): Promise<number> {
+  let inserted = 0;
+  for (const batch of chunk(rows, batchSize)) {
+    let attempt = 0;
+    while (attempt < maxRetries) {
+      const { error } = await supabase.from(table).insert(batch);
+      if (!error) { inserted += batch.length; break; }
+      attempt++;
+      if (attempt >= maxRetries) {
+        console.error(`  ✗ ${table} batch failed after ${maxRetries} retries: ${error.message}`);
+      } else {
+        await new Promise(r => setTimeout(r, 1000 * attempt));
+      }
+    }
+  }
+  return inserted;
+}
+
 async function main() {
   const args = parseArgs();
   const rand = rng(args.seed);
@@ -265,38 +289,24 @@ async function main() {
       }
 
       // Flush periódico para no usar demasiada RAM
-      if (ventasBuffer.length >= 5000) {
-        const { error } = await supabase.from("ventas_fact").insert(ventasBuffer);
-        if (error) console.error("ventas batch:", error.message);
-        else totalVentas += ventasBuffer.length;
+      if (ventasBuffer.length >= 2000) {
+        totalVentas += await insertWithRetry("ventas_fact", ventasBuffer);
         ventasBuffer.length = 0;
-      }
-      if (invBuffer.length >= 5000) {
-        const { error } = await supabase.from("inventario_fact").insert(invBuffer);
-        if (error) console.error("inv batch:", error.message);
-        else totalInv += invBuffer.length;
-        invBuffer.length = 0;
-      }
-      if (totalVentas % 50000 === 0 && totalVentas > 0) {
         process.stdout.write(`\r  ventas: ${totalVentas.toLocaleString()} filas`);
+      }
+      if (invBuffer.length >= 2000) {
+        totalInv += await insertWithRetry("inventario_fact", invBuffer);
+        invBuffer.length = 0;
       }
     }
   }
 
   // Flush final
   if (ventasBuffer.length > 0) {
-    for (const c of chunk(ventasBuffer, 5000)) {
-      const { error } = await supabase.from("ventas_fact").insert(c);
-      if (error) console.error("ventas final:", error.message);
-      else totalVentas += c.length;
-    }
+    totalVentas += await insertWithRetry("ventas_fact", ventasBuffer);
   }
   if (invBuffer.length > 0) {
-    for (const c of chunk(invBuffer, 5000)) {
-      const { error } = await supabase.from("inventario_fact").insert(c);
-      if (error) console.error("inv final:", error.message);
-      else totalInv += c.length;
-    }
+    totalInv += await insertWithRetry("inventario_fact", invBuffer);
   }
 
   console.log(`\n\n✓ Ventas: ${totalVentas.toLocaleString()} filas`);
