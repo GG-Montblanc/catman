@@ -36,7 +36,10 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim().toLowerCase(),
-      options: { shouldCreateUser: true },
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
 
     setLoading(false);
@@ -48,8 +51,8 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
     }
 
     setStep("code");
-    toast.success("Código enviado", {
-      description: "Revisa tu correo y pega el código aquí.",
+    toast.success("Correo enviado", {
+      description: "Haz click en el link del correo, o pega el código de 6 dígitos aquí.",
     });
   }
 
