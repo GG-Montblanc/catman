@@ -11,6 +11,7 @@ import { ShelfSVG } from "./ShelfSVG"
 import { SkuSwapDialog } from "./SkuSwapDialog"
 import { ScenarioPanel } from "./ScenarioPanel"
 import { PublicarButton } from "./PublicarButton"
+import { VersionHistorySheet } from "./VersionHistorySheet"
 import type { PlanogramData, PlanogramSlot, SlotKpis, PendingSwap } from "@/lib/planogram/types"
 import type { HeatmapLayer } from "@/lib/heatmap/colorScale"
 import Link from "next/link"
@@ -125,6 +126,7 @@ export function SimuladorClient({ planograma }: Props) {
               Editor
             </Link>
           </Button>
+          <VersionHistorySheet planogramaId={planograma.id} />
           <PublicarButton planogramaId={planograma.id} />
         </div>
       </div>

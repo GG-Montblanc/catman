@@ -9,13 +9,17 @@ export type SlotKpis = {
 }
 
 export type PlanogramSku = {
-  id:           string
-  nombre:       string
-  sku_externo:  string
-  imagen_url:   string | null
-  precio_lista: number
-  marca_nombre: string | null
-  categoria_id: string
+  id:             string
+  nombre:         string
+  sku_externo:    string
+  imagen_url:     string | null
+  precio_lista:   number
+  marca_nombre:   string | null
+  categoria_id:   string
+  // Optional KPI fields (present in editor pool)
+  avg_gmroi?:      number | null
+  avg_sellthru?:   number | null
+  avg_margen_pct?: number | null
 }
 
 export type PlanogramSlot = {
