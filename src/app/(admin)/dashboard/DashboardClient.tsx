@@ -15,6 +15,7 @@ import {
   fetchHeatmap,
 } from "@/lib/kpi/queries"
 import { gmroiColor, sellthruColor, type DashboardFilters } from "@/lib/kpi/types"
+import { createClient } from "@/lib/supabase/client"
 
 function periodToRange(periodo: string) {
   const months = periodo === "3m" ? 3 : periodo === "6m" ? 6 : periodo === "24m" ? 24 : 12
@@ -53,6 +54,25 @@ export function DashboardClient() {
     queryKey: ["dashboard_kpis", filtersKey],
     queryFn:  () => fetchGlobalKpis(filters),
     staleTime: 5 * 60 * 1000,
+  })
+
+  // Quick stats: conteos de entidades activas
+  const sb = createClient()
+  const { data: quickStats } = useQuery({
+    queryKey: ["dashboard_quick_stats"],
+    queryFn: async () => {
+      const [skus, tiendas, categorias] = await Promise.all([
+        sb.from("skus").select("id", { count: "exact", head: true }).eq("activo", true),
+        sb.from("tiendas").select("id", { count: "exact", head: true }).eq("activa", true),
+        sb.from("categorias").select("id", { count: "exact", head: true }),
+      ])
+      return {
+        n_skus:       skus.count ?? 0,
+        n_tiendas:    tiendas.count ?? 0,
+        n_categorias: categorias.count ?? 0,
+      }
+    },
+    staleTime: 10 * 60 * 1000,
   })
 
   const { data: tendencia = [], isLoading: loadingTrend } = useQuery({
@@ -168,6 +188,41 @@ export function DashboardClient() {
           </div>
         </div>
       )}
+
+      {/* Quick Stats bar */}
+      <div className="flex flex-wrap gap-2">
+        {[
+          {
+            label: "SKUs activos",
+            value: quickStats ? quickStats.n_skus.toLocaleString("es-CL") : "…",
+            icon: "📦",
+          },
+          {
+            label: "Tiendas activas",
+            value: quickStats ? quickStats.n_tiendas.toLocaleString("es-CL") : "…",
+            icon: "🏬",
+          },
+          {
+            label: "Categorías",
+            value: quickStats ? quickStats.n_categorias.toLocaleString("es-CL") : "…",
+            icon: "🏷️",
+          },
+          {
+            label: "Período",
+            value: periodo,
+            icon: "📅",
+          },
+        ].map(pill => (
+          <div
+            key={pill.label}
+            className="flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-xs"
+          >
+            <span>{pill.icon}</span>
+            <span className="text-muted-foreground">{pill.label}</span>
+            <span className="font-semibold tabular-nums">{pill.value}</span>
+          </div>
+        ))}
+      </div>
 
       {/* Charts */}
       <Tabs defaultValue="tendencia">

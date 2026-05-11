@@ -1,20 +1,45 @@
-import { PlaceholderPage } from "@/components/layout/PlaceholderPage";
+import { createClient } from "@/lib/supabase/server"
+import { Badge } from "@/components/ui/badge"
+import { CategoriasList } from "./CategoriasList"
+import type { CategoriaKpi } from "./CategoriasList"
 
-export const metadata = { title: "Categorías" };
+export const metadata = { title: "Categorías — DBS Category Tracker" }
 
-export default function CategoriasPage() {
+async function fetchCategoriasKpis(): Promise<CategoriaKpi[]> {
+  const sb = await createClient()
+  const { data, error } = await (sb.rpc as any)("get_categorias_kpis", { p_meses: 6 })
+  if (error) {
+    console.error("get_categorias_kpis:", error.message)
+    return []
+  }
+  return (data as CategoriaKpi[]) ?? []
+}
+
+export default async function CategoriasPage() {
+  const categorias = await fetchCategoriasKpis()
+
   return (
-    <PlaceholderPage
-      title="Categorías"
-      description="Análisis jerárquico familia → subfamilia → tipo (ej: Maquillaje > Labios > Labial mate)."
-      phase={1}
-      bullets={[
-        "Selector jerárquico con KPIs agregados por nivel.",
-        "Comparativa entre subfamilias (BarChart).",
-        "Tendencias por atributo: % ventas tonos rojos vs nude, mate vs gloss, etc.",
-        "SKUs líderes y rezagados de la categoría.",
-        "Análisis por marca: espacio actual vs participación en ventas vs GMROI.",
-      ]}
-    />
-  );
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Categorías</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            KPIs agregados por familia de producto en los últimos 6 meses
+          </p>
+        </div>
+        <Badge variant="secondary" className="ml-auto shrink-0">
+          {categorias.length} categorías con ventas
+        </Badge>
+      </div>
+
+      {categorias.length === 0 ? (
+        <div className="flex h-48 items-center justify-center rounded-xl border border-dashed text-muted-foreground text-sm">
+          Sin datos de ventas en los últimos 6 meses
+        </div>
+      ) : (
+        <CategoriasList categorias={categorias} />
+      )}
+    </div>
+  )
 }
