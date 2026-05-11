@@ -37,7 +37,7 @@ AS $$
     JOIN public.mv_sku_kpis_mensual k
       ON  k.sku_id   = ps.sku_id
       AND k.tienda_id = pl.tienda_id
-      AND k.anio_mes >= (CURRENT_DATE - INTERVAL '6 months')::text
+      AND k.anio_mes >= (CURRENT_DATE - INTERVAL '6 months')
     GROUP BY ps.planograma_id
   )
   SELECT
