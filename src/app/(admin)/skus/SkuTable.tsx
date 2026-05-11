@@ -11,7 +11,8 @@ import {
 } from "@tanstack/react-table"
 import { createClient } from "@/lib/supabase/client"
 import Image from "next/image"
-import { ChevronDown, ChevronUp, ChevronsUpDown, Search, TrendingUp, TrendingDown, Minus } from "lucide-react"
+import { ChevronDown, ChevronUp, ChevronsUpDown, Search, TrendingUp, TrendingDown, Minus, LayoutGrid, List } from "lucide-react"
+import { MdiCardView } from "./MdiCardView"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -84,6 +85,7 @@ function SortIcon({ state }: { state: false | "asc" | "desc" }) {
 }
 
 export function SkuTable() {
+  const [viewMode, setViewMode] = useState<"table" | "mdi">("table")
   const [buscar, setBuscar]   = useState("")
   const [debouncedBuscar, setDebouncedBuscar] = useState("")
   const [page, setPage]       = useState(0)
@@ -253,10 +255,43 @@ export function SkuTable() {
           {total.toLocaleString("es-CL")} SKUs
           {isFetching && !isLoading && " · Actualizando…"}
         </span>
+
+        {/* View toggle */}
+        <div className="flex rounded-lg border p-0.5 bg-muted gap-0.5 ml-auto">
+          <button
+            onClick={() => setViewMode("table")}
+            title="Vista tabla"
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+              viewMode === "table"
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <List className="h-3.5 w-3.5" />
+            Tabla
+          </button>
+          <button
+            onClick={() => setViewMode("mdi")}
+            title="Vista MDI / Inventario"
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+              viewMode === "mdi"
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            Vista MDI
+          </button>
+        </div>
       </div>
 
+      {/* MDI Card View */}
+      {viewMode === "mdi" && <MdiCardView />}
+
       {/* Table */}
-      <div className="rounded-xl border overflow-hidden">
+      {viewMode === "table" && <div className="rounded-xl border overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -320,8 +355,10 @@ export function SkuTable() {
         </div>
       </div>
 
-      {/* Pagination */}
-      {pages > 1 && (
+      }
+
+      {/* Pagination — table mode only */}
+      {viewMode === "table" && pages > 1 && (
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">
             Mostrando {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} de {total.toLocaleString("es-CL")}
