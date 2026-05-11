@@ -7,6 +7,7 @@ import {
   LayoutGrid,
   TrendingUp,
   Sparkles,
+  PieChart,
 } from "lucide-react";
 
 export type NavItem = {
@@ -36,6 +37,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Planogramas", href: "/planogramas", icon: LayoutGrid },
       { label: "Optimización", href: "/optimizacion", icon: Sparkles },
+      { label: "Espacio por marca", href: "/optimizacion/espacio-marca", icon: PieChart },
       { label: "Tendencias", href: "/tendencias", icon: TrendingUp },
     ],
   },
