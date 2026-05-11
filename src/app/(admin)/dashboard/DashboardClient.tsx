@@ -16,6 +16,7 @@ import {
 } from "@/lib/kpi/queries"
 import { gmroiColor, sellthruColor, type DashboardFilters } from "@/lib/kpi/types"
 import { createClient } from "@/lib/supabase/client"
+import { AlertasPanel } from "@/components/charts/AlertasPanel"
 
 function periodToRange(periodo: string) {
   const months = periodo === "3m" ? 3 : periodo === "6m" ? 6 : periodo === "24m" ? 24 : 12
@@ -223,6 +224,9 @@ export function DashboardClient() {
           </div>
         ))}
       </div>
+
+      {/* Alerts */}
+      <AlertasPanel />
 
       {/* Charts */}
       <Tabs defaultValue="tendencia">

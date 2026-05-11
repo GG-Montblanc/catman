@@ -11,7 +11,7 @@ import {
 } from "@tanstack/react-table"
 import { createClient } from "@/lib/supabase/client"
 import Image from "next/image"
-import { ChevronDown, ChevronUp, ChevronsUpDown, Search } from "lucide-react"
+import { ChevronDown, ChevronUp, ChevronsUpDown, Search, TrendingUp, TrendingDown, Minus } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -22,6 +22,13 @@ import {
 import type { SkuConKpis } from "@/lib/kpi/types"
 import { gmroiColor, mdiColor } from "@/lib/kpi/types"
 import { cn } from "@/lib/utils"
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ReferenceLine, ResponsiveContainer,
+} from "recharts"
+import { holtWinters } from "@/lib/forecast/holt-winters"
+import { format, addMonths, parseISO } from "date-fns"
+import { es } from "date-fns/locale"
 
 const PAGE_SIZE = 50
 
@@ -349,6 +356,191 @@ export function SkuTable() {
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Forecast chart component — runs Holt-Winters client-side
+// ─────────────────────────────────────────────────────────────────────────────
+function SkuForecastChart({ skuId }: { skuId: string }) {
+  const sb = createClient()
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["sku_forecast", skuId],
+    queryFn: async () => {
+      // Fetch last 24 months of aggregated monthly sales
+      const since = format(addMonths(new Date(), -24), "yyyy-MM-01")
+      const { data: rows, error } = await sb
+        .from("ventas_fact")
+        .select("anio_mes, unidades, ingreso")
+        .eq("sku_id", skuId)
+        .gte("anio_mes", since)
+        .order("anio_mes", { ascending: true })
+
+      if (error) throw error
+
+      // Aggregate across stores by month
+      const byMonth = new Map<string, { unidades: number; ingreso: number }>()
+      for (const r of rows ?? []) {
+        const key = r.anio_mes.slice(0, 7) // "YYYY-MM"
+        const cur = byMonth.get(key) ?? { unidades: 0, ingreso: 0 }
+        cur.unidades += r.unidades ?? 0
+        cur.ingreso  += r.ingreso  ?? 0
+        byMonth.set(key, cur)
+      }
+
+      const months    = Array.from(byMonth.keys()).sort()
+      const unidades  = months.map(m => byMonth.get(m)!.unidades)
+      const ingresos  = months.map(m => byMonth.get(m)!.ingreso)
+
+      if (months.length === 0) return null
+
+      // Run Holt-Winters for 6-month forecast
+      const hwU = holtWinters(unidades, { horizon: 6 })
+      const hwI = holtWinters(ingresos,  { horizon: 6 })
+
+      // Build chart data — historical + forecast
+      const lastMonth = months[months.length - 1]
+      const lastDate  = parseISO(lastMonth + "-01")
+
+      const histPoints = months.map((m, i) => ({
+        mes:        format(parseISO(m + "-01"), "MMM yy", { locale: es }),
+        unidades:   Math.round(unidades[i]),
+        ingreso:    Math.round(ingresos[i]),
+        forecast_u: null as number | null,
+        forecast_i: null as number | null,
+        tipo:       "real" as "real" | "forecast",
+      }))
+
+      // Bridge point (last real = first forecast)
+      const bridgePoint = {
+        mes:        histPoints[histPoints.length - 1].mes,
+        unidades:   null as number | null,
+        ingreso:    null as number | null,
+        forecast_u: Math.round(histPoints[histPoints.length - 1].unidades),
+        forecast_i: Math.round(histPoints[histPoints.length - 1].ingreso),
+        tipo:       "forecast" as const,
+      }
+
+      const forecastPoints = hwU.forecast.map((fu, i) => ({
+        mes:        format(addMonths(lastDate, i + 1), "MMM yy", { locale: es }),
+        unidades:   null as number | null,
+        ingreso:    null as number | null,
+        forecast_u: Math.round(fu),
+        forecast_i: Math.round(hwI.forecast[i]),
+        tipo:       "forecast" as const,
+      }))
+
+      const tendencia: "creciente" | "estable" | "decreciente" = (() => {
+        const last3 = hwU.forecast.slice(3)
+        const first3 = hwU.forecast.slice(0, 3)
+        const avgLast  = last3.reduce((a, b) => a + b, 0) / last3.length
+        const avgFirst = first3.reduce((a, b) => a + b, 0) / first3.length
+        const delta = (avgLast - avgFirst) / (avgFirst || 1)
+        if (delta > 0.05)  return "creciente"
+        if (delta < -0.05) return "decreciente"
+        return "estable"
+      })()
+
+      return {
+        points: [...histPoints, bridgePoint, ...forecastPoints],
+        mape:   hwU.mape,
+        tendencia,
+        forecastStartIdx: histPoints.length,
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+
+  if (isLoading) return <div className="h-44 animate-pulse rounded-lg bg-muted" />
+  if (error || !data) return <p className="text-xs text-muted-foreground">Sin datos de ventas.</p>
+
+  const TrendIcon = data.tendencia === "creciente"
+    ? TrendingUp
+    : data.tendencia === "decreciente"
+      ? TrendingDown
+      : Minus
+
+  const trendColor = data.tendencia === "creciente"
+    ? "text-emerald-600"
+    : data.tendencia === "decreciente"
+      ? "text-rose-500"
+      : "text-amber-500"
+
+  const firstForecastMes = data.points[data.forecastStartIdx]?.mes
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-semibold">Pronóstico de ventas (6 meses)</h4>
+        <div className={cn("flex items-center gap-1 text-xs font-medium", trendColor)}>
+          <TrendIcon className="h-3.5 w-3.5" />
+          <span className="capitalize">{data.tendencia}</span>
+          {data.mape > 0 && (
+            <span className="text-muted-foreground font-normal ml-1">MAPE {data.mape.toFixed(0)}%</span>
+          )}
+        </div>
+      </div>
+
+      <ResponsiveContainer width="100%" height={180}>
+        <LineChart data={data.points} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <XAxis
+            dataKey="mes"
+            tick={{ fontSize: 10 }}
+            interval="preserveStartEnd"
+          />
+          <YAxis tick={{ fontSize: 10 }} width={48} />
+          <Tooltip
+            contentStyle={{ fontSize: 12 }}
+            formatter={(val, name) => [
+              typeof val === "number" ? val.toLocaleString("es-CL") : "—",
+              name === "unidades" ? "Real (u)" :
+              name === "forecast_u" ? "Pronóstico (u)" :
+              name === "ingreso" ? "Real ($)" : "Pronóstico ($)",
+            ]}
+          />
+          {firstForecastMes && (
+            <ReferenceLine
+              x={firstForecastMes}
+              stroke="hsl(var(--muted-foreground))"
+              strokeDasharray="4 4"
+              label={{ value: "hoy", fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+            />
+          )}
+          <Line
+            type="monotone"
+            dataKey="unidades"
+            stroke="#d4177a"
+            strokeWidth={2}
+            dot={false}
+            connectNulls={false}
+            name="unidades"
+          />
+          <Line
+            type="monotone"
+            dataKey="forecast_u"
+            stroke="#d4177a"
+            strokeWidth={2}
+            strokeDasharray="5 4"
+            dot={false}
+            connectNulls={true}
+            name="forecast_u"
+          />
+          <Legend
+            iconType="line"
+            iconSize={12}
+            formatter={(v) =>
+              v === "unidades" ? "Real" :
+              v === "forecast_u" ? "Pronóstico" : v
+            }
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SKU Detail panel (drawer content)
+// ─────────────────────────────────────────────────────────────────────────────
 function SkuDetailPanel({ sku }: { sku: SkuConKpis }) {
   return (
     <>
@@ -420,6 +612,11 @@ function SkuDetailPanel({ sku }: { sku: SkuConKpis }) {
                 : "—"}
             </span>
           </div>
+        </div>
+
+        {/* Forecast chart */}
+        <div className="rounded-lg border p-4">
+          <SkuForecastChart skuId={sku.id} />
         </div>
 
         {/* MDI badge */}

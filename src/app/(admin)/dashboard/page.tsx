@@ -2,6 +2,7 @@ import { Suspense } from "react"
 import { createClient } from "@/lib/supabase/server"
 import { FilterBar } from "./FilterBar"
 import { DashboardClient } from "./DashboardClient"
+import { RefreshMvButton } from "./RefreshMvButton"
 
 export const metadata = { title: "Dashboard — DBS Category Tracker" }
 
@@ -32,11 +33,14 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          KPIs de desempeño del portafolio DBS
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            KPIs de desempeño del portafolio DBS
+          </p>
+        </div>
+        <RefreshMvButton />
       </div>
 
       <Suspense fallback={null}>

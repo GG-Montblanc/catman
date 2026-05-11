@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { gmroiColor } from "@/lib/kpi/types"
 import { TiendaDetailSheet } from "./TiendaDetailSheet"
 
@@ -153,6 +154,17 @@ export function TiendasList({ tiendas }: Props) {
               <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
                 <span>{tienda.n_skus_activos} SKUs activos</span>
                 <span>{tienda.total_unidades.toLocaleString("es-CL")} uds.</span>
+              </div>
+
+              {/* Análisis link */}
+              <div className="mt-2 pt-2 border-t border-border/50 flex justify-end">
+                <Link
+                  href={`/tiendas/${tienda.tienda_id}`}
+                  onClick={e => e.stopPropagation()}
+                  className="text-[11px] font-medium text-[#d4177a] hover:underline"
+                >
+                  Ver análisis →
+                </Link>
               </div>
             </button>
           ))}

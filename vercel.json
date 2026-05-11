@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/refresh-mv",
+      "schedule": "0 5 1 * *"
+    }
+  ]
+}

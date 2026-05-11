@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { gmroiColor, sellthruColor } from "@/lib/kpi/types"
 import { CategoriaDetailSheet } from "./CategoriaDetailSheet"
@@ -8,6 +9,7 @@ import { CategoriaDetailSheet } from "./CategoriaDetailSheet"
 export type CategoriaKpi = {
   categoria_id: string
   nombre: string
+  slug: string
   nivel: number
   parent_nombre: string | null
   n_skus: number
@@ -101,6 +103,17 @@ export function CategoriasList({ categorias }: Props) {
             <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
               <span>{cat.n_skus} SKUs</span>
               <span>{cat.total_unidades.toLocaleString("es-CL")} uds.</span>
+            </div>
+
+            {/* Análisis link */}
+            <div className="mt-2 pt-2 border-t border-border/50 flex justify-end">
+              <Link
+                href={`/categorias/${cat.slug}`}
+                onClick={e => e.stopPropagation()}
+                className="text-[11px] font-medium text-[#d4177a] hover:underline"
+              >
+                Ver análisis →
+              </Link>
             </div>
           </button>
         ))}
