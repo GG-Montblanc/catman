@@ -2,23 +2,50 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { generarPlanograma } from "@/lib/planogram/generate"
-import type { GenerateConfig } from "@/lib/planogram/generate"
+import type { GenerateConfig, GeneratedSlot } from "@/lib/planogram/generate"
 
 export type { GenerateConfig }
+export type PreviewSlot = GeneratedSlot & { grupo?: string }
 
+// ─── Preview (run algorithm without saving) ────────────────────────────────
+export async function previewPlanograma(
+  config: GenerateConfig
+): Promise<
+  | { ok: true; slots: PreviewSlot[]; total: number; grupos: { nombre: string; count: number }[] }
+  | { ok: false; error: string }
+> {
+  try {
+    const slots = await generarPlanograma(config)
+
+    if (slots.length === 0) {
+      return {
+        ok: false,
+        error: "No se encontraron SKUs con datos de ventas para esta combinación tienda/categoría. Verifica que la vista mv_sku_kpis_mensual esté actualizada (ejecuta refresh_mv_kpis_manual).",
+      }
+    }
+
+    return { ok: true, slots, total: slots.length, grupos: [] }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Error desconocido"
+    return { ok: false, error: msg }
+  }
+}
+
+// ─── Create (run algorithm + persist) ─────────────────────────────────────
 export async function crearPlanograma(
   nombre: string,
   config: GenerateConfig
 ): Promise<{ ok: true; planogramaId: string } | { ok: false; error: string }> {
   try {
-    // Step 1: Run the generation algorithm
     const slots = await generarPlanograma(config)
 
     if (slots.length === 0) {
-      return { ok: false, error: "No se encontraron SKUs para generar el planograma con la configuración indicada." }
+      return {
+        ok: false,
+        error: "No se encontraron SKUs para generar el planograma con la configuración indicada.",
+      }
     }
 
-    // Step 2: Persist via RPC
     const sb = await createClient()
     const { data, error } = await (sb.rpc as any)("crear_planograma_generado", {
       p_nombre:       nombre,

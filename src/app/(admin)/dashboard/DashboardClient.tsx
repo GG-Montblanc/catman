@@ -229,13 +229,186 @@ export function DashboardClient() {
       <AlertasPanel />
 
       {/* Charts */}
-      <Tabs defaultValue="tendencia">
+      <Tabs defaultValue="ejecutivo">
         <TabsList className="mb-4">
+          <TabsTrigger value="ejecutivo">📊 Ejecutivo</TabsTrigger>
           <TabsTrigger value="tendencia">Tendencia 24m</TabsTrigger>
           <TabsTrigger value="top">Top 10 SKUs</TabsTrigger>
           <TabsTrigger value="bottom">Bottom 10 SKUs</TabsTrigger>
           <TabsTrigger value="heatmap">Heatmap Categoría × Tienda</TabsTrigger>
         </TabsList>
+
+        {/* ── Resumen Ejecutivo ──────────────────────────────────────── */}
+        <TabsContent value="ejecutivo">
+          <div className="space-y-4">
+            {/* Big 4 KPIs */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                {
+                  label: "Ingreso Total",
+                  value: kpis ? fmtCLP(kpis.total_ingreso) : "—",
+                  sub: "en el período",
+                  color: "text-foreground",
+                  bg: "bg-card",
+                },
+                {
+                  label: "Margen Total",
+                  value: kpis ? fmtCLP(kpis.total_margen) : "—",
+                  sub: kpis?.avg_margen_pct != null ? `${kpis.avg_margen_pct.toFixed(1)}% sobre ventas` : "—",
+                  color: "text-emerald-600",
+                  bg: "bg-emerald-50/60",
+                },
+                {
+                  label: "GMROI Promedio",
+                  value: kpis?.avg_gmroi != null ? `${kpis.avg_gmroi.toFixed(2)}×` : "—",
+                  sub: kpis?.avg_gmroi != null
+                    ? kpis.avg_gmroi >= 2 ? "✅ Excelente" : kpis.avg_gmroi >= 1 ? "⚠️ Moderado" : "🔴 Bajo"
+                    : "—",
+                  color: kpis?.avg_gmroi != null
+                    ? kpis.avg_gmroi >= 2 ? "text-emerald-600" : kpis.avg_gmroi >= 1 ? "text-amber-600" : "text-rose-600"
+                    : "text-muted-foreground",
+                  bg: "bg-card",
+                },
+                {
+                  label: "Sellthru",
+                  value: kpis?.avg_sellthru_pct != null ? `${kpis.avg_sellthru_pct.toFixed(1)}%` : "—",
+                  sub: kpis?.avg_sellthru_pct != null
+                    ? kpis.avg_sellthru_pct >= 65 ? "✅ Saludable" : kpis.avg_sellthru_pct >= 40 ? "⚠️ Mejorable" : "🔴 Crítico"
+                    : "—",
+                  color: kpis?.avg_sellthru_pct != null
+                    ? kpis.avg_sellthru_pct >= 65 ? "text-emerald-600" : kpis.avg_sellthru_pct >= 40 ? "text-amber-600" : "text-rose-600"
+                    : "text-muted-foreground",
+                  bg: "bg-card",
+                },
+              ].map(card => (
+                <div key={card.label} className={`rounded-xl border p-4 ${card.bg}`}>
+                  <p className="text-xs text-muted-foreground mb-1">{card.label}</p>
+                  <p className={`text-2xl font-bold tabular-nums leading-none ${card.color}`}>{card.value}</p>
+                  <p className="text-xs text-muted-foreground mt-1.5">{card.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Health indicators + Top performers */}
+            <div className="grid lg:grid-cols-2 gap-4">
+              {/* Indicadores */}
+              <div className="rounded-xl border bg-card p-4 space-y-3">
+                <h3 className="text-sm font-semibold">Indicadores clave</h3>
+                <div className="space-y-2">
+                  {[
+                    {
+                      label: "Fill Rate",
+                      value: kpis?.avg_fill_rate != null ? `${kpis.avg_fill_rate.toFixed(1)}%` : "—",
+                      ok: kpis?.avg_fill_rate != null && kpis.avg_fill_rate >= 85,
+                      warn: kpis?.avg_fill_rate != null && kpis.avg_fill_rate >= 70,
+                    },
+                    {
+                      label: "Días de stock promedio",
+                      value: kpis?.avg_dias_stock != null ? `${kpis.avg_dias_stock.toFixed(0)} días` : "—",
+                      ok: kpis?.avg_dias_stock != null && kpis.avg_dias_stock <= 70,
+                      warn: kpis?.avg_dias_stock != null && kpis.avg_dias_stock <= 120,
+                    },
+                    {
+                      label: "SKUs obsoletos (MDI > 6m)",
+                      value: kpis?.pct_obsoletos != null ? `${kpis.pct_obsoletos.toFixed(1)}%` : "—",
+                      ok: kpis?.pct_obsoletos != null && kpis.pct_obsoletos <= 10,
+                      warn: kpis?.pct_obsoletos != null && kpis.pct_obsoletos <= 25,
+                    },
+                    {
+                      label: "Sell-to-Stock",
+                      value: kpis?.avg_sell_to_stock != null ? `${(kpis.avg_sell_to_stock * 100).toFixed(1)}%` : "—",
+                      ok: kpis?.avg_sell_to_stock != null && kpis.avg_sell_to_stock * 100 >= 30,
+                      warn: kpis?.avg_sell_to_stock != null && kpis.avg_sell_to_stock * 100 >= 15,
+                    },
+                    {
+                      label: "SKUs activos",
+                      value: quickStats?.n_skus != null ? `${quickStats.n_skus.toLocaleString("es-CL")}` : "…",
+                      ok: true,
+                      warn: true,
+                    },
+                    {
+                      label: "Tiendas activas",
+                      value: quickStats?.n_tiendas != null ? `${quickStats.n_tiendas}` : "…",
+                      ok: true,
+                      warn: true,
+                    },
+                  ].map(ind => {
+                    const dot = ind.ok
+                      ? "bg-emerald-500"
+                      : ind.warn
+                      ? "bg-amber-500"
+                      : "bg-rose-500"
+                    return (
+                      <div key={ind.label} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className={`h-2 w-2 rounded-full shrink-0 ${dot}`} />
+                          <span className="text-muted-foreground">{ind.label}</span>
+                        </div>
+                        <span className="font-semibold tabular-nums">{ind.value}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Top performers */}
+              <div className="rounded-xl border bg-card p-4 space-y-3">
+                <h3 className="text-sm font-semibold">Top 5 SKUs por GMROI</h3>
+                {loadingTopBottom ? (
+                  <div className="space-y-2">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="h-8 rounded bg-muted animate-pulse" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {(topBottom?.top ?? []).slice(0, 5).map((sku, i) => (
+                      <div key={sku.sku_id} className="flex items-center gap-2 text-sm">
+                        <span className="w-4 text-xs text-muted-foreground font-mono">{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate font-medium text-xs leading-tight">{sku.nombre}</p>
+                          <p className="text-[10px] text-muted-foreground">{sku.marca_nombre}</p>
+                        </div>
+                        <span className="text-xs font-bold text-emerald-600 tabular-nums shrink-0">
+                          {sku.avg_gmroi != null ? `${sku.avg_gmroi.toFixed(2)}×` : "—"}
+                        </span>
+                      </div>
+                    ))}
+                    {(topBottom?.top ?? []).length === 0 && (
+                      <p className="text-xs text-muted-foreground italic">Sin datos</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Critical SKUs */}
+            <div className="rounded-xl border bg-card p-4 space-y-3">
+              <h3 className="text-sm font-semibold text-rose-600">⚠️ SKUs críticos — Bottom 5 GMROI</h3>
+              {loadingTopBottom ? (
+                <div className="h-20 animate-pulse rounded bg-muted" />
+              ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+                  {(topBottom?.bottom ?? []).slice(0, 5).map(sku => (
+                    <div key={sku.sku_id} className="rounded-lg border border-rose-200 bg-rose-50/50 p-3 space-y-1">
+                      <p className="text-xs font-medium leading-tight line-clamp-2">{sku.nombre}</p>
+                      <p className="text-[10px] text-muted-foreground">{sku.marca_nombre}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-xs font-bold text-rose-600 tabular-nums">
+                          {sku.avg_gmroi != null ? `${sku.avg_gmroi.toFixed(2)}×` : "—"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">GMROI</span>
+                      </div>
+                    </div>
+                  ))}
+                  {(topBottom?.bottom ?? []).length === 0 && (
+                    <p className="text-xs text-muted-foreground italic col-span-5">Sin datos</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
 
         <TabsContent value="tendencia">
           <div className="rounded-xl border bg-card p-5">

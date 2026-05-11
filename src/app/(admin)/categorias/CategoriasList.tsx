@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { gmroiColor, sellthruColor } from "@/lib/kpi/types"
 import { CategoriaDetailSheet } from "./CategoriaDetailSheet"
+import { TrendSparkSvg } from "@/components/charts/SparkLine"
 
 export type CategoriaKpi = {
   categoria_id: string
@@ -39,10 +40,11 @@ function gmroiBadgeClass(v: number) {
        : "bg-muted text-muted-foreground"
 }
 
+// TrendIcon kept for accessibility but replaced visually by TrendSparkSvg
 function TrendIcon({ t }: { t: "up" | "flat" | "down" }) {
-  if (t === "up")   return <span className="text-emerald-600 font-bold text-sm">▲</span>
-  if (t === "down") return <span className="text-red-500 font-bold text-sm">▼</span>
-  return <span className="text-muted-foreground font-bold text-sm">—</span>
+  if (t === "up")   return <span className="sr-only">tendencia ascendente</span>
+  if (t === "down") return <span className="sr-only">tendencia descendente</span>
+  return <span className="sr-only">tendencia estable</span>
 }
 
 interface Props {
@@ -64,7 +66,7 @@ export function CategoriasList({ categorias }: Props) {
           >
             {/* Header */}
             <div className="flex items-start justify-between gap-2 mb-3">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="font-semibold text-sm leading-tight truncate">{cat.nombre}</p>
                 {cat.parent_nombre && (
                   <p className="text-[11px] text-muted-foreground truncate mt-0.5">
@@ -72,6 +74,7 @@ export function CategoriasList({ categorias }: Props) {
                   </p>
                 )}
               </div>
+              <TrendSparkSvg trend={cat.tendencia_gmroi} />
               <TrendIcon t={cat.tendencia_gmroi} />
             </div>
 
