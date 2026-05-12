@@ -49,7 +49,8 @@ export type Tienda = {
   region: string;
   canal: "mall" | "calle" | "outlet";
   formato: "DBS Beauty Store" | "Tiendas MakeUp" | "Prismology" | "DJ Distribuidor";
-  m2_lineales: Record<string, number>; // por familia: { maquillaje: 8, skincare: 6, ... }
+  m2_lineales: Record<string, number>; // por familia: { Maquillaje: 8, Skincare: 6, ... }
+  direccion: string | null;
   activa: boolean;
   created_at: string;
 };

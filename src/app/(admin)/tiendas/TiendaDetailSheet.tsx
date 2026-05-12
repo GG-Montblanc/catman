@@ -92,11 +92,12 @@ interface Props {
   nombre: string
   ciudad: string
   formato: string
+  direccion?: string | null
   open: boolean
   onClose: () => void
 }
 
-export function TiendaDetailSheet({ tiendaId, nombre, ciudad, formato, open, onClose }: Props) {
+export function TiendaDetailSheet({ tiendaId, nombre, ciudad, formato, direccion, open, onClose }: Props) {
   const sb = createClient()
 
   const { data, isLoading } = useQuery<TiendaDetalle | null>({
@@ -123,6 +124,9 @@ export function TiendaDetailSheet({ tiendaId, nombre, ciudad, formato, open, onC
         <SheetHeader className="sticky top-0 z-10 bg-popover border-b px-5 py-4">
           <SheetTitle className="text-base">{nombre}</SheetTitle>
           <p className="text-xs text-muted-foreground -mt-0.5">{ciudad} · {formato}</p>
+          {direccion && (
+            <p className="text-[11px] text-muted-foreground/70 -mt-0.5">{direccion}</p>
+          )}
 
           {kpis && bench && (
             <div className="flex flex-wrap gap-4 pt-2">

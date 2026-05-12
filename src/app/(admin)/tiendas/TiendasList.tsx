@@ -12,6 +12,7 @@ export type TiendaKpi = {
   region: string
   canal: string
   formato: string
+  direccion: string | null
   avg_gmroi: number
   avg_sellthru: number
   avg_margen_pct: number
@@ -113,6 +114,11 @@ export function TiendasList({ tiendas }: Props) {
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     {tienda.ciudad} · {tienda.region}
                   </p>
+                  {tienda.direccion && (
+                    <p className="text-[10px] text-muted-foreground/70 truncate mt-0.5">
+                      {tienda.direccion}
+                    </p>
+                  )}
                 </div>
                 <span className={`shrink-0 text-xs font-semibold rounded border px-1.5 py-0.5 ${gmroiBadgeClass(tienda.avg_gmroi)}`}>
                   #{tienda.rank_gmroi} en {tienda.formato.split(" ")[0]}
@@ -177,6 +183,7 @@ export function TiendasList({ tiendas }: Props) {
           nombre={selected.nombre}
           ciudad={selected.ciudad}
           formato={selected.formato}
+          direccion={selected.direccion}
           open={!!selected}
           onClose={() => setSelected(null)}
         />
