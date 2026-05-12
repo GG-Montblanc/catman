@@ -259,20 +259,39 @@ async function main() {
   if (skuErr) throw skuErr;
   console.log(`  ${skus!.length} SKUs cargados`);
 
-  // 2. Crear tiendas
-  console.log("\n→ Creando tiendas...");
-  // Limpiar facts y tiendas previas para idempotencia
-  await supabase.from("ventas_fact").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await supabase.from("inventario_fact").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await supabase.from("tiendas").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-
-  const tiendas = generarTiendas(args.stores, rand);
-  const { data: tiendasCreated, error: tErr } = await supabase
+  // 2. Tiendas — usar las reales si ya existen (migración 0078), sino generar sintéticas
+  console.log("\n→ Verificando tiendas...");
+  const { data: tiendasExistentes, error: tCheckErr } = await supabase
     .from("tiendas")
-    .insert(tiendas)
-    .select("id");
-  if (tErr) throw tErr;
-  console.log(`  ${tiendasCreated!.length} tiendas creadas`);
+    .select("id")
+    .limit(1);
+  if (tCheckErr) throw tCheckErr;
+
+  let tiendasCreated: { id: string }[];
+
+  if (tiendasExistentes && tiendasExistentes.length > 0) {
+    // Tiendas reales ya cargadas por migración 0078 — solo limpiar facts
+    console.log("  Tiendas reales detectadas. Limpiando ventas/inventario previos...");
+    await supabase.from("ventas_fact").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("inventario_fact").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    const { data: all, error: allErr } = await supabase.from("tiendas").select("id");
+    if (allErr) throw allErr;
+    tiendasCreated = all!;
+    console.log(`  ${tiendasCreated.length} tiendas reales en uso`);
+  } else {
+    // Sin tiendas reales: generar sintéticas (modo legacy / sin migración 0078)
+    console.log("  Sin tiendas en DB. Generando tiendas sintéticas...");
+    await supabase.from("ventas_fact").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("inventario_fact").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    const tiendas = generarTiendas(args.stores, rand);
+    const { data: created, error: tErr } = await supabase
+      .from("tiendas")
+      .insert(tiendas)
+      .select("id");
+    if (tErr) throw tErr;
+    tiendasCreated = created!;
+    console.log(`  ${tiendasCreated.length} tiendas sintéticas creadas`);
+  }
 
   // 3. Asignar tier de popularidad por SKU (power-law)
   const skuRanking = [...skus!].sort(() => rand() - 0.5);
