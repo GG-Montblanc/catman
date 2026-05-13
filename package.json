@@ -11,7 +11,8 @@
     "scrape:dbs": "tsx scripts/scrape-dbs.ts",
     "load:catalog": "tsx scripts/load-catalog.ts",
     "seed:fake": "tsx scripts/generate-fake-data.ts",
-    "seed:planogramas": "tsx scripts/generate-planograms.ts"
+    "seed:planogramas": "tsx scripts/generate-planograms.ts",
+    "refresh:kpis": "tsx scripts/refresh-kpis.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

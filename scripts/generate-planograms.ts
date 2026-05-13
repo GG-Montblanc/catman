@@ -38,7 +38,17 @@ function chunk<T>(arr: T[], size: number): T[][] {
 async function main() {
   console.log("🗃  Generando planogramas demo…\n")
 
-  // ── 0. Borrar planogramas previos ──────────────────────────────────────────
+  // ── 0a. Refrescar MV de KPIs (para que los datos del seed sean visibles) ───
+  console.log("  Refrescando mv_sku_kpis_mensual…")
+  const { error: mvErr } = await (supabase.rpc as any)("refresh_mv_kpis_manual")
+  if (mvErr) {
+    console.warn("  ⚠ No se pudo refrescar la MV (puede que no exista aún):", mvErr.message)
+    console.warn("    → Los planogramas se crearán sin ranking por GMROI.\n")
+  } else {
+    console.log("  ✓ MV refrescada\n")
+  }
+
+  // ── 0b. Borrar planogramas previos ─────────────────────────────────────────
   console.log("  Limpiando planogramas previos…")
   await supabase.from("planograma_versiones").delete().neq("id", "00000000-0000-0000-0000-000000000000")
   await supabase.from("planograma_slots").delete().neq("id", "00000000-0000-0000-0000-000000000000")
