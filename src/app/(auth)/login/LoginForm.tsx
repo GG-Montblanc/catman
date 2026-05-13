@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Mail, KeyRound } from "lucide-react";
 import { toast } from "sonner";
@@ -27,6 +27,25 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
   const [loading, setLoading] = useState(false);
   const submittingRef = useRef(false);
 
+  // Detecta sesión activa (ej: magic link con token en el hash de la URL)
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        router.replace(redirectTo);
+        router.refresh();
+      }
+    });
+    // También escucha cambios de sesión (cuando el cliente parsea el hash)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
+        router.replace(redirectTo);
+        router.refresh();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [router, redirectTo]);
+
   async function sendCode(e: React.FormEvent) {
     e.preventDefault();
     if (!email || submittingRef.current) return;
@@ -38,6 +57,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
       email: email.trim().toLowerCase(),
       options: {
         shouldCreateUser: false,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
