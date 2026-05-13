@@ -35,7 +35,7 @@ function parseArgs(): Args {
     return i >= 0 ? argv[i + 1] : null;
   };
   return {
-    months: Number(get("months") ?? 24),
+    months: Number(get("months") ?? 12),   // 12 meses por defecto (cabe en plan Free)
     stores: Number(get("stores") ?? 50),
     seed: Number(get("seed") ?? 42),
   };
@@ -297,7 +297,14 @@ async function main() {
   const skuRanking = [...skus!].sort(() => rand() - 0.5);
   const weights = paretoWeights(skuRanking.length);
   const skuPopularidad = new Map<string, number>();
-  skuRanking.forEach((s, i) => skuPopularidad.set(s.id, weights[i]));
+  const skuStoreReach = new Map<string, number>(); // fracción de tiendas que llevan este SKU
+  skuRanking.forEach((s, i) => {
+    skuPopularidad.set(s.id, weights[i]);
+    // Top 20% SKUs → 90% tiendas | Mid 30% → 65% | Bottom 50% → 40%
+    const pct = i / skuRanking.length;
+    const reach = pct < 0.20 ? 0.90 : pct < 0.50 ? 0.65 : 0.40;
+    skuStoreReach.set(s.id, reach);
+  });
 
   // 4. Generar series mensuales
   console.log("\n→ Generando ventas e inventario...");
@@ -322,9 +329,15 @@ async function main() {
     // baseUnitsChain: unidades totales de la cadena por mes para este SKU
     // SKU top (pop=max) vende ~turnover/12 * (precio/costo) unidades/tienda
     // Escalamos por popularidad (power-law ya aplicado en pop)
-    const baseUnitsChain = pop * args.stores * turnover * 1.2; // ~1.2 unidades/mes promedio en tienda top
+    // Usamos raíz quinta del peso para aplanar la power-law:
+    // así incluso SKUs bottom tienen ventas ocasionales (~0.2 uds/tienda/mes)
+    const baseUnitsChain = Math.pow(pop, 0.2) * args.stores * turnover * 0.5;
 
     for (const tienda of tiendasCreated!) {
+      // Cobertura: no todos los SKUs están en todas las tiendas
+      const reach = skuStoreReach.get(sku.id) ?? 0.5;
+      if (rand() > reach) continue; // este SKU no se vende en esta tienda
+
       // Tienda factor (pequeña variación por tienda)
       const tiendaFactor = 0.7 + rand() * 0.7;
       // Inventario inicial: 8-12 weeks supply
@@ -355,6 +368,9 @@ async function main() {
 
         const unidades = Math.max(0, Math.min(disponible, Math.round(expectedUnits * promoLift)));
         stockFin = disponible - unidades;
+
+        // Saltar filas sin actividad para reducir volumen
+        if (unidades === 0 && recibido === 0) continue;
 
         const precioBase = sku.precio_lista || 0;
         const precioVenta = precioBase * (1 - descuento_pct / 100);
