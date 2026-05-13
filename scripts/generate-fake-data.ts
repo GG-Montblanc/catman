@@ -372,12 +372,18 @@ async function main() {
         // Saltar filas sin actividad para reducir volumen
         if (unidades === 0 && recibido === 0) continue;
 
-        const precioBase = sku.precio_lista || 0;
+        // Precio base: usar precio_lista si es > 0, sino precio_oferta, sino default 5000
+        const precioBase = (sku.precio_lista && sku.precio_lista > 0)
+          ? sku.precio_lista
+          : 5000 + Math.round(rand() * 45000)  // ~5K-50K CLP (rango beauty realista)
         const precioVenta = precioBase * (1 - descuento_pct / 100);
 
         // Costo basado en margen real de la categoría (no fijo 50%)
         const margenFrac = margenPorCategoria(catRoot, rand);
-        const costoUnitario = sku.costo_unitario ?? precioBase * (1 - margenFrac);
+        // Usar costo_unitario de la DB solo si es positivo (evita bug con scraper que pone 0)
+        const costoUnitario = (sku.costo_unitario && sku.costo_unitario > 0)
+          ? sku.costo_unitario
+          : precioBase * (1 - margenFrac);
         const costo = costoUnitario * unidades;
         const ingreso = precioVenta * unidades;
 

@@ -144,7 +144,8 @@ async function main() {
     categoria_id: catIdByRuta.get(p.categoria_path) ?? null,
     precio_lista: p.precio_lista,
     precio_oferta: p.precio_oferta,
-    costo_unitario: p.precio_lista * 0.5, // placeholder: costo = 50% del precio lista
+    // Costo = 50% del precio de lista (placeholder); solo si precio > 0
+    costo_unitario: (p.precio_lista && p.precio_lista > 0) ? p.precio_lista * 0.5 : null,
     imagen_url: p.imagen_url,
     url_dbs: p.url_dbs,
     atributos: p.atributos,
