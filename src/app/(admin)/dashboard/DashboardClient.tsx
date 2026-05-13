@@ -94,8 +94,30 @@ export function DashboardClient() {
     staleTime: 10 * 60 * 1000,
   })
 
+  // Banner cuando no hay datos KPI (MV vacía)
+  const noData = !loadingKpis && kpis != null &&
+    kpis.avg_gmroi == null && kpis.total_ingreso == null
+
   return (
     <div className="space-y-6">
+      {/* Banner sin datos */}
+      {noData && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 px-5 py-4 flex items-start gap-3">
+          <span className="text-xl shrink-0">⚠️</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+              Sin datos de KPIs — la vista materializada está vacía
+            </p>
+            <p className="text-xs text-amber-800 dark:text-amber-300 mt-0.5">
+              Corre <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">npm run seed:fake</code> y
+              luego <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">npm run seed:planogramas</code> para
+              generar datos sintéticos. O haz clic en{" "}
+              <strong>Refrescar KPIs</strong> si los datos ya están en la DB.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
         <KpiCard
