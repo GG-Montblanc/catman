@@ -212,7 +212,7 @@ function PlanogramaCard({ p }: { p: PlanogramaRow }) {
       </div>
 
       {/* ── Footer actions ────────────────────────────────────────────────────── */}
-      <div className="border-t px-4 py-2.5 flex items-center justify-between bg-muted/20">
+      <div className="border-t px-4 py-2.5 flex items-center justify-between bg-muted/20 gap-2">
         <Link
           href={`/planogramas/${p.id}/editor`}
           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -220,10 +220,16 @@ function PlanogramaCard({ p }: { p: PlanogramaRow }) {
           Editor
         </Link>
         <Link
+          href={`/planogramas/${p.id}/pedido`}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          🛒 Pedido
+        </Link>
+        <Link
           href={`/planogramas/${p.id}/simulador`}
           className="flex items-center gap-1 text-xs font-medium text-[var(--brand-magenta)] hover:opacity-80 transition-opacity"
         >
-          Ver simulador <ArrowRight className="h-3 w-3" />
+          Simulador <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
     </div>
