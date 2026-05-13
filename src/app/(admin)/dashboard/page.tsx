@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { FilterBar } from "./FilterBar"
 import { DashboardClient } from "./DashboardClient"
 import { RefreshMvButton } from "./RefreshMvButton"
+import { QuickActionsBar } from "./QuickActionsBar"
 
 export const metadata = { title: "Dashboard — DBS Category Tracker" }
 
@@ -50,6 +51,9 @@ export default async function DashboardPage() {
           marcas={marcas as any}
         />
       </Suspense>
+
+      {/* Quick actions — dinámico, cambia color si hay alertas urgentes */}
+      <QuickActionsBar />
 
       <Suspense fallback={<DashboardSkeleton />}>
         <DashboardClient />

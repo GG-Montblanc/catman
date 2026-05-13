@@ -9,6 +9,7 @@ import {
   Sparkles,
   PieChart,
   Bell,
+  BookOpen,
 } from "lucide-react";
 
 export type NavItem = {
@@ -41,6 +42,12 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Espacio por marca", href: "/optimizacion/espacio-marca", icon: PieChart },
       { label: "Tendencias", href: "/tendencias", icon: TrendingUp },
       { label: "Alertas", href: "/alertas", icon: Bell },
+    ],
+  },
+  {
+    label: "Ayuda",
+    items: [
+      { label: "Manual & Indicadores", href: "/manual", icon: BookOpen },
     ],
   },
 ];

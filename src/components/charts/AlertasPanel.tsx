@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
+import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,6 +15,8 @@ import {
   ChevronUp,
   RefreshCw,
   ShieldAlert,
+  ExternalLink,
+  ArrowRight,
 } from "lucide-react"
 import Image from "next/image"
 
@@ -170,6 +173,19 @@ export function AlertasPanel() {
                   </div>
                 </div>
               )}
+
+              {/* Ver todas link */}
+              {alertas.length > 0 && (
+                <div className="pt-1">
+                  <Link
+                    href="/alertas"
+                    className="flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-magenta)] hover:opacity-80 transition-opacity"
+                  >
+                    Ver las {alertas.length} alertas completas
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -178,59 +194,95 @@ export function AlertasPanel() {
   )
 }
 
+// Map alert type to a primary action link
+const ALERT_ACTION: Record<string, { label: string; href: string }> = {
+  dog:            { label: "Ver en Cuadrantes", href: "/optimizacion" },
+  sobrestock:     { label: "Ver SKUs MDI",      href: "/skus" },
+  quiebre_riesgo: { label: "Ver pedidos",       href: "/optimizacion?tab=compras" },
+  obsoleto:       { label: "Ver SKUs MDI",      href: "/skus" },
+}
+
 function AlertRow({ alerta }: { alerta: Alerta }) {
-  const cfg  = TIPO_CONFIG[alerta.tipo_alerta] ?? TIPO_CONFIG.obsoleto
-  const Icon = cfg.icon
+  const cfg    = TIPO_CONFIG[alerta.tipo_alerta] ?? TIPO_CONFIG.obsoleto
+  const Icon   = cfg.icon
+  const action = ALERT_ACTION[alerta.tipo_alerta]
 
   return (
     <div className={cn(
-      "flex items-center gap-3 rounded-lg border border-l-4 px-3 py-2.5 bg-background",
+      "rounded-lg border border-l-4 bg-background",
       cfg.border,
     )}>
-      {/* Imagen */}
-      <div className="h-10 w-10 flex-shrink-0 rounded overflow-hidden bg-muted">
-        {alerta.imagen_url ? (
-          <Image
-            src={alerta.imagen_url}
-            alt={alerta.sku_nombre}
-            width={40} height={40}
-            className="object-cover h-10 w-10"
-            unoptimized
-          />
-        ) : (
-          <div className="h-10 w-10 flex items-center justify-center text-muted-foreground">
-            <Icon className="h-4 w-4" />
-          </div>
-        )}
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-sm font-medium leading-tight truncate max-w-48">
-            {alerta.sku_nombre}
-          </p>
-          <Badge className={cn("text-xs shrink-0", cfg.badge)}>
-            {cfg.label}
-          </Badge>
+      <div className="flex items-center gap-3 px-3 py-2.5">
+        {/* Imagen */}
+        <div className="h-10 w-10 flex-shrink-0 rounded overflow-hidden bg-muted">
+          {alerta.imagen_url ? (
+            <Image
+              src={alerta.imagen_url}
+              alt={alerta.sku_nombre}
+              width={40} height={40}
+              className="object-cover h-10 w-10"
+              unoptimized
+            />
+          ) : (
+            <div className="h-10 w-10 flex items-center justify-center text-muted-foreground">
+              <Icon className="h-4 w-4" />
+            </div>
+          )}
         </div>
-        <p className="text-xs text-muted-foreground leading-tight mt-0.5 line-clamp-1">
-          {alerta.descripcion}
-        </p>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-medium leading-tight truncate max-w-48">
+              {alerta.sku_nombre}
+            </p>
+            <Badge className={cn("text-xs shrink-0", cfg.badge)}>
+              {cfg.label}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground leading-tight mt-0.5 line-clamp-1">
+            {alerta.descripcion}
+          </p>
+        </div>
+
+        {/* Métricas */}
+        <div className="flex flex-col items-end gap-0.5 shrink-0 text-right">
+          {alerta.valor_gmroi != null && (
+            <span className="text-xs tabular-nums font-semibold">
+              GMROI {alerta.valor_gmroi.toFixed(2)}×
+            </span>
+          )}
+          {alerta.valor_mdi != null && (
+            <span className="text-xs text-muted-foreground tabular-nums">
+              MDI {alerta.valor_mdi.toFixed(1)}m
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Métricas */}
-      <div className="flex flex-col items-end gap-0.5 shrink-0 text-right">
-        {alerta.valor_gmroi != null && (
-          <span className="text-xs tabular-nums font-semibold">
-            GMROI {alerta.valor_gmroi.toFixed(2)}×
-          </span>
+      {/* Action footer */}
+      <div className="border-t flex items-center gap-2 px-3 py-1.5 bg-muted/20">
+        <span className="text-[10px] text-muted-foreground flex-1 leading-tight hidden sm:block">
+          {cfg.label === "Quiebre" ? "⚡ Acción urgente: reponer stock" :
+           cfg.label === "Dog"     ? "💡 Evalúa reemplazar o liquidar" :
+           cfg.label === "Sobrestock" ? "📦 Reducir próxima compra" :
+           "🟡 Evaluar promoción agresiva"}
+        </span>
+        {action && (
+          <Link
+            href={action.href}
+            className="flex items-center gap-1 text-[11px] font-semibold text-[var(--brand-magenta)] hover:opacity-80 transition-opacity shrink-0"
+          >
+            {action.label}
+            <ArrowRight className="h-3 w-3" />
+          </Link>
         )}
-        {alerta.valor_mdi != null && (
-          <span className="text-xs text-muted-foreground tabular-nums">
-            MDI {alerta.valor_mdi.toFixed(1)}m
-          </span>
-        )}
+        <Link
+          href="/alertas"
+          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors shrink-0"
+        >
+          <ExternalLink className="h-3 w-3" />
+        </Link>
       </div>
     </div>
   )
