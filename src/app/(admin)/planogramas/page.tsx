@@ -46,6 +46,7 @@ type PlanogramaRow = {
   avg_sellthru: number | null
   avg_margen_pct: number | null
   total_ingreso: number | null
+  n_tiendas_asignadas: number | null
 }
 
 export default async function PlanogramasPage() {
@@ -85,6 +86,7 @@ export default async function PlanogramasPage() {
       avg_sellthru:         null,
       avg_margen_pct:       null,
       total_ingreso:        null,
+      n_tiendas_asignadas:  null,
     }))
   }
 
@@ -180,6 +182,11 @@ function PlanogramaCard({ p }: { p: PlanogramaRow }) {
           {p.slot_count > 0 && (
             <span className="text-xs text-muted-foreground">
               · {p.slot_count} SKU{p.slot_count !== 1 ? "s" : ""}
+            </span>
+          )}
+          {p.n_tiendas_asignadas != null && p.n_tiendas_asignadas > 0 && (
+            <span className="text-xs font-medium text-[var(--brand-magenta)]">
+              · 🏬 {p.n_tiendas_asignadas} tienda{p.n_tiendas_asignadas !== 1 ? "s" : ""}
             </span>
           )}
         </div>

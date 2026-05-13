@@ -12,6 +12,7 @@ import { SkuSwapDialog } from "./SkuSwapDialog"
 import { ScenarioPanel } from "./ScenarioPanel"
 import { PublicarButton } from "./PublicarButton"
 import { VersionHistorySheet } from "./VersionHistorySheet"
+import { AsignarTiendasSheet } from "../AsignarTiendasSheet"
 import type { PlanogramData, PlanogramSlot, SlotKpis, PendingSwap } from "@/lib/planogram/types"
 import type { HeatmapLayer } from "@/lib/heatmap/colorScale"
 import Link from "next/link"
@@ -132,6 +133,10 @@ export function SimuladorClient({ planograma }: Props) {
               Editor
             </Link>
           </Button>
+          <AsignarTiendasSheet
+            planogramaId={planograma.id}
+            planogramaNombre={planograma.nombre}
+          />
           <VersionHistorySheet planogramaId={planograma.id} />
           <PublicarButton planogramaId={planograma.id} />
         </div>
