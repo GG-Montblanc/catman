@@ -1368,43 +1368,57 @@ AS $$
     WHERE m.anio_mes >= (DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '6 months')::DATE
     GROUP BY m.sku_id
   ),
+  -- Umbrales relativos al propio portafolio (percentiles), en vez de cortes fijos
+  -- pensados para un rango de MDI/fill_rate que este dataset nunca alcanza
+  -- (fill_rate = LEAST(dias_stock/30, 1) se satura en 1.0 para casi todo SKU
+  -- con > 1 mes de stock, así que ya no se usa como condición de quiebre).
+  percentiles AS (
+    SELECT
+      PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY avg_gmroi)    AS gmroi_p10,
+      PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY avg_gmroi)    AS gmroi_p50,
+      PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY avg_sellthru) AS sellthru_p25,
+      PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY avg_mdi)      AS mdi_p10,
+      PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY avg_mdi)      AS mdi_p75,
+      PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY avg_mdi)      AS mdi_p90
+    FROM kpis
+  ),
   alertas AS (
     SELECT k.sku_id, 'dog'::TEXT AS tipo, 1 AS sev,
-           'GMROI bajo y rotación lenta — candidato a liquidación' AS desc_,
+           'GMROI en el 10% más bajo del portafolio y baja rotación — candidato a liquidación' AS desc_,
            k.avg_gmroi, k.avg_mdi
-    FROM kpis k
-    WHERE k.avg_gmroi IS NOT NULL AND k.avg_gmroi < 0.5
-      AND k.avg_sellthru IS NOT NULL AND k.avg_sellthru < 30
+    FROM kpis k, percentiles p
+    WHERE k.avg_gmroi IS NOT NULL AND k.avg_gmroi <= p.gmroi_p10
+      AND k.avg_sellthru IS NOT NULL AND k.avg_sellthru <= p.sellthru_p25
 
     UNION ALL
 
     SELECT k.sku_id, 'sobrestock'::TEXT,
-           CASE WHEN k.avg_mdi > 12 THEN 1 ELSE 2 END,
-           CASE WHEN k.avg_mdi > 12
-             THEN 'Inventario crítico > 12 meses — revisar descontinuación'
-             ELSE 'Inventario elevado (9–12 meses) — reducir próxima compra'
+           CASE WHEN k.avg_mdi > p.mdi_p90 THEN 1 ELSE 2 END,
+           CASE WHEN k.avg_mdi > p.mdi_p90
+             THEN 'Inventario en el 10% más alto del portafolio — revisar descontinuación'
+             ELSE 'Inventario en el 25% más alto del portafolio — reducir próxima compra'
            END,
            k.avg_gmroi, k.avg_mdi
-    FROM kpis k WHERE k.avg_mdi IS NOT NULL AND k.avg_mdi > 9
+    FROM kpis k, percentiles p
+    WHERE k.avg_mdi IS NOT NULL AND k.avg_mdi > p.mdi_p75
 
     UNION ALL
 
     SELECT k.sku_id, 'quiebre_riesgo'::TEXT, 1,
-           'Fill rate bajo y stock escaso — riesgo de quiebre inminente',
+           'Cobertura de stock en el 10% más baja del portafolio con buena rotación — riesgo de quiebre',
            k.avg_gmroi, k.avg_mdi
-    FROM kpis k
-    WHERE k.avg_fill_rate IS NOT NULL AND k.avg_fill_rate < 60
-      AND k.avg_mdi IS NOT NULL AND k.avg_mdi < 1
-      AND k.avg_gmroi IS NOT NULL AND k.avg_gmroi > 0.8
+    FROM kpis k, percentiles p
+    WHERE k.avg_mdi IS NOT NULL AND k.avg_mdi <= p.mdi_p10
+      AND k.avg_gmroi IS NOT NULL AND k.avg_gmroi >= p.gmroi_p50
 
     UNION ALL
 
     SELECT k.sku_id, 'obsoleto'::TEXT, 2,
-           'GMROI aceptable pero inventario obsoleto — evaluar promoción agresiva',
+           'GMROI bajo el promedio del portafolio con inventario elevado — evaluar promoción',
            k.avg_gmroi, k.avg_mdi
-    FROM kpis k
-    WHERE k.avg_mdi IS NOT NULL AND k.avg_mdi BETWEEN 6 AND 9
-      AND k.avg_gmroi IS NOT NULL AND k.avg_gmroi < 1.0
+    FROM kpis k, percentiles p
+    WHERE k.avg_mdi IS NOT NULL AND k.avg_mdi BETWEEN p.mdi_p75 AND p.mdi_p90
+      AND k.avg_gmroi IS NOT NULL AND k.avg_gmroi < p.gmroi_p50
   ),
   ranked AS (
     SELECT DISTINCT ON (a.sku_id)
