@@ -5,7 +5,7 @@ import Papa from "papaparse"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import type { EspacioMarcaRow } from "./page"
+import type { EspacioMarcaRow } from "../page"
 
 function gmroiBadge(v: number) {
   if (v >= 3)
@@ -59,9 +59,9 @@ export function EspacioMarcaClient({
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h3 className="text-sm font-semibold">
             Distribución de espacio por marca
-          </h1>
+          </h3>
           <div className="flex items-center gap-2 mt-1.5">
             <Badge variant="secondary" className="text-xs">
               {data.length} marcas · {totalSlots} slots totales

@@ -7,7 +7,6 @@ import {
   LayoutGrid,
   TrendingUp,
   Sparkles,
-  PieChart,
   Bell,
   BookOpen,
 } from "lucide-react";
@@ -38,8 +37,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Acción",
     items: [
       { label: "Planogramas", href: "/planogramas", icon: LayoutGrid },
-      { label: "Optimización", href: "/optimizacion", icon: Sparkles },
-      { label: "Espacio por marca", href: "/optimizacion/espacio-marca", icon: PieChart },
+      { label: "Optimización", href: "/optimizacion", icon: Sparkles, hint: "compras, espacio y más" },
       { label: "Tendencias", href: "/tendencias", icon: TrendingUp },
       { label: "Alertas", href: "/alertas", icon: Bell },
     ],

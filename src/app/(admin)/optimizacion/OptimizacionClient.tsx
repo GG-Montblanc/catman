@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useCallback } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
 import {
   useReactTable,
@@ -45,8 +46,9 @@ import {
 import { createClient } from "@/lib/supabase/client"
 import { ChevronDown, ChevronUp, ChevronsUpDown, Download, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { CuadranteRow } from "./page"
+import type { CuadranteRow, EspacioMarcaRow } from "./page"
 import { MarcaDemandaChart } from "./MarcaDemandaChart"
+import { EspacioMarcaClient } from "./espacio-marca/EspacioMarcaClient"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -594,21 +596,43 @@ function ComprasTable() {
 
 // ─── Main client component ────────────────────────────────────────────────────
 
+const VALID_TABS = ["cuadrantes", "compras", "cuando-comprar", "espacio-marca"] as const
+type TabValue = (typeof VALID_TABS)[number]
+
 export function OptimizacionClient({
   cuadrante,
   tiendas,
   categorias,
+  espacioMarca,
+  espacioMarcaTotalSlots,
 }: {
   cuadrante: CuadranteRow[]
   tiendas:   { id: string; nombre: string }[]
   categorias: { id: string; nombre: string }[]
+  espacioMarca: EspacioMarcaRow[]
+  espacioMarcaTotalSlots: number
 }) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const tabParam = searchParams.get("tab")
+  const activeTab: TabValue = (VALID_TABS as readonly string[]).includes(tabParam ?? "")
+    ? (tabParam as TabValue)
+    : "cuadrantes"
+
+  const handleTabChange = useCallback((value: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("tab", value)
+    router.replace(`/optimizacion?${params.toString()}`, { scroll: false })
+  }, [router, searchParams])
+
   return (
-    <Tabs defaultValue="cuadrantes">
+    <Tabs value={activeTab} onValueChange={handleTabChange}>
       <TabsList className="mb-5">
         <TabsTrigger value="cuadrantes">Matriz cuadrantes</TabsTrigger>
         <TabsTrigger value="compras">Órdenes de compra</TabsTrigger>
         <TabsTrigger value="cuando-comprar">Cuándo comprar (marca)</TabsTrigger>
+        <TabsTrigger value="espacio-marca">Espacio por marca</TabsTrigger>
       </TabsList>
 
       <TabsContent value="cuadrantes">
@@ -625,6 +649,10 @@ export function OptimizacionClient({
 
       <TabsContent value="cuando-comprar">
         <MarcaDemandaChart />
+      </TabsContent>
+
+      <TabsContent value="espacio-marca">
+        <EspacioMarcaClient data={espacioMarca} totalSlots={espacioMarcaTotalSlots} />
       </TabsContent>
     </Tabs>
   )

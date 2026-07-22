@@ -7,6 +7,7 @@ import {
   Sparkles,
   LayoutGrid,
   ShoppingCart,
+  CalendarClock,
   TrendingUp,
   BookOpen,
   ArrowRight,
@@ -90,6 +91,13 @@ export function QuickActionsBar() {
       href: "/optimizacion?tab=compras",
       icon: ShoppingCart,
       baseColor: "border-muted-foreground/20 hover:border-teal-300",
+    },
+    {
+      label: "Qué y cuándo comprar",
+      desc: "Curva de demanda por marca",
+      href: "/optimizacion?tab=cuando-comprar",
+      icon: CalendarClock,
+      baseColor: "border-muted-foreground/20 hover:border-indigo-300",
     },
     {
       label: "Tendencias",
