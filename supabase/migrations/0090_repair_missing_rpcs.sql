@@ -518,12 +518,7 @@ AS $$
   ventas_base AS (
     SELECT
       v.sku_id,
-      ROUND(
-        AVG(
-          CASE WHEN p_tienda_id IS NULL THEN total_mes ELSE v.unidades END
-        )::numeric,
-        2
-      ) AS avg_ventas_mensual
+      ROUND(AVG(total_mes)::numeric, 2) AS avg_ventas_mensual
     FROM (
       SELECT
         sku_id,
