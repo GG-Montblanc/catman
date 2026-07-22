@@ -7,7 +7,7 @@ type Props = { params: Promise<{ id: string }> }
 
 export async function generateMetadata({ params }: Props) {
   const { id } = await params
-  return { title: `Editor — DBS Category Tracker` }
+  return { title: `Editor — DBS CatMan` }
 }
 
 export default async function EditorPage({ params }: Props) {

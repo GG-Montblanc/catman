@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { OptimizacionClient } from "./OptimizacionClient"
 
-export const metadata = { title: "Optimización — DBS Category Tracker" }
+export const metadata = { title: "Optimización — DBS CatMan" }
 
 export default async function OptimizacionPage() {
   const sb = await createClient()

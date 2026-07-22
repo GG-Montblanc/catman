@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     .eq("slug", slug)
     .single()
   const nombre = data?.nombre ?? slug
-  return { title: `${nombre} — DBS Category Tracker` }
+  return { title: `${nombre} — DBS CatMan` }
 }
 
 export default async function CategoriaDetallePage({ params }: Props) {

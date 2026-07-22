@@ -5,7 +5,7 @@ import { DashboardClient } from "./DashboardClient"
 import { RefreshMvButton } from "./RefreshMvButton"
 import { QuickActionsBar } from "./QuickActionsBar"
 
-export const metadata = { title: "Dashboard — DBS Category Tracker" }
+export const metadata = { title: "Dashboard — DBS CatMan" }
 
 async function fetchFilterOptions() {
   const sb = await createClient()

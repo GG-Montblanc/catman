@@ -4,7 +4,7 @@ import { MdiView } from "./MdiView"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 
-export const metadata = { title: "SKUs — DBS Category Tracker" }
+export const metadata = { title: "SKUs — DBS CatMan" }
 
 type Props = {
   searchParams: Promise<{ vista?: string }>

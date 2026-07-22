@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { PlanogramasClient } from "./PlanogramasClient"
 
-export const metadata = { title: "Planogramas — DBS Category Tracker" }
+export const metadata = { title: "Planogramas — DBS CatMan" }
 
 export type PlanogramaRow = {
   id: string

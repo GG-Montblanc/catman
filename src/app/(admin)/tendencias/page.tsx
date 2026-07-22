@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { TendenciasClient } from "./TendenciasClient"
 
-export const metadata = { title: "Tendencias — DBS Category Tracker" }
+export const metadata = { title: "Tendencias — DBS CatMan" }
 
 type Categoria = {
   id: string

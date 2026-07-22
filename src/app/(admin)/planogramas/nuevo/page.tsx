@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { WizardClient } from "./WizardClient"
 
-export const metadata = { title: "Nuevo Planograma — DBS Category Tracker" }
+export const metadata = { title: "Nuevo Planograma — DBS CatMan" }
 
 type Tienda = { id: string; nombre: string; ciudad: string }
 type Categoria = { id: string; nombre: string; ruta: string }

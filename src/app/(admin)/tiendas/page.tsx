@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { TiendasList } from "./TiendasList"
 import type { TiendaKpi } from "./TiendasList"
 
-export const metadata = { title: "Tiendas — DBS Category Tracker" }
+export const metadata = { title: "Tiendas — DBS CatMan" }
 
 async function fetchTiendasKpis(): Promise<TiendaKpi[]> {
   const sb = await createClient()

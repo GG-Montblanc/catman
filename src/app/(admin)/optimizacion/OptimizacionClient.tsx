@@ -46,6 +46,7 @@ import { createClient } from "@/lib/supabase/client"
 import { ChevronDown, ChevronUp, ChevronsUpDown, Download, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { CuadranteRow } from "./page"
+import { MarcaDemandaChart } from "./MarcaDemandaChart"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -607,6 +608,7 @@ export function OptimizacionClient({
       <TabsList className="mb-5">
         <TabsTrigger value="cuadrantes">Matriz cuadrantes</TabsTrigger>
         <TabsTrigger value="compras">Órdenes de compra</TabsTrigger>
+        <TabsTrigger value="cuando-comprar">Cuándo comprar (marca)</TabsTrigger>
       </TabsList>
 
       <TabsContent value="cuadrantes">
@@ -619,6 +621,10 @@ export function OptimizacionClient({
 
       <TabsContent value="compras">
         <ComprasTable />
+      </TabsContent>
+
+      <TabsContent value="cuando-comprar">
+        <MarcaDemandaChart />
       </TabsContent>
     </Tabs>
   )

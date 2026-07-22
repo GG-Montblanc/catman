@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
-const APP_NAME = "DBS Category Tracker";
+const APP_NAME = "DBS CatMan";
 const APP_DESCRIPTION =
   "Plataforma de Category Management para Empresas DBS — visibilidad SKU, planogramas y optimización GMROI.";
 

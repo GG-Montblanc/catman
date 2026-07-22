@@ -11,7 +11,7 @@ import {
 } from "@tanstack/react-table"
 import { createClient } from "@/lib/supabase/client"
 import Image from "next/image"
-import { ChevronDown, ChevronUp, ChevronsUpDown, Search, TrendingUp, TrendingDown, Minus, LayoutGrid, List } from "lucide-react"
+import { ChevronDown, ChevronUp, ChevronsUpDown, Search, LayoutGrid, List } from "lucide-react"
 import { MdiCardView } from "./MdiCardView"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -23,11 +23,9 @@ import {
 import type { SkuConKpis } from "@/lib/kpi/types"
 import { gmroiColor, mdiColor } from "@/lib/kpi/types"
 import { cn } from "@/lib/utils"
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ReferenceLine, ResponsiveContainer,
-} from "recharts"
 import { holtWinters } from "@/lib/forecast/holt-winters"
+import { buildPurchaseCurve } from "@/lib/forecast/purchase-curve"
+import { DemandaCompraViz } from "@/components/forecast/DemandaCompraViz"
 import { format, addMonths, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
 
@@ -396,7 +394,7 @@ export function SkuTable() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Forecast chart component — runs Holt-Winters client-side
 // ─────────────────────────────────────────────────────────────────────────────
-function SkuForecastChart({ skuId }: { skuId: string }) {
+function SkuForecastChart({ skuId, precioLista }: { skuId: string; precioLista: number }) {
   const sb = createClient()
 
   const { data, isLoading, error } = useQuery({
@@ -412,6 +410,21 @@ function SkuForecastChart({ skuId }: { skuId: string }) {
         .order("anio_mes", { ascending: true })
 
       if (error) throw error
+
+      // Stock actual (suma últimas existencias por tienda) + lead time del SKU
+      const [{ data: invRows }, { data: skuRow }] = await Promise.all([
+        sb
+          .from("inventario_fact")
+          .select("stock_fin, anio_mes, tienda_id")
+          .eq("sku_id", skuId)
+          .order("anio_mes", { ascending: false })
+          .limit(50),
+        sb
+          .from("skus")
+          .select("lead_time_dias")
+          .eq("id", skuId)
+          .single(),
+      ])
 
       // Aggregate across stores by month
       const byMonth = new Map<string, { unidades: number; ingreso: number }>()
@@ -429,9 +442,23 @@ function SkuForecastChart({ skuId }: { skuId: string }) {
 
       if (months.length === 0) return null
 
+      // Stock actual: suma de stock_fin del mes más reciente disponible (todas las tiendas)
+      const ultimoMesInv = (invRows ?? [])[0]?.anio_mes
+      const stockActual = (invRows ?? [])
+        .filter(r => r.anio_mes === ultimoMesInv)
+        .reduce((s, r) => s + (r.stock_fin ?? 0), 0)
+      const leadTimeDias = skuRow?.lead_time_dias ?? 150
+
       // Run Holt-Winters for 6-month forecast
       const hwU = holtWinters(unidades, { horizon: 6 })
       const hwI = holtWinters(ingresos,  { horizon: 6 })
+
+      const { stockProyectado, recomendacion } = buildPurchaseCurve({
+        forecastUnidades: hwU.forecast,
+        stockActual,
+        precioLista,
+        leadTimeDias,
+      })
 
       // Build chart data — historical + forecast
       const lastMonth = months[months.length - 1]
@@ -443,6 +470,7 @@ function SkuForecastChart({ skuId }: { skuId: string }) {
         ingreso:    Math.round(ingresos[i]),
         forecast_u: null as number | null,
         forecast_i: null as number | null,
+        stock_proyectado: null as number | null,
         tipo:       "real" as "real" | "forecast",
       }))
 
@@ -453,6 +481,7 @@ function SkuForecastChart({ skuId }: { skuId: string }) {
         ingreso:    null as number | null,
         forecast_u: Math.round(histPoints[histPoints.length - 1].unidades),
         forecast_i: Math.round(histPoints[histPoints.length - 1].ingreso),
+        stock_proyectado: Math.round(stockActual),
         tipo:       "forecast" as const,
       }
 
@@ -462,6 +491,7 @@ function SkuForecastChart({ skuId }: { skuId: string }) {
         ingreso:    null as number | null,
         forecast_u: Math.round(fu),
         forecast_i: Math.round(hwI.forecast[i]),
+        stock_proyectado: Math.round(stockProyectado[i]),
         tipo:       "forecast" as const,
       }))
 
@@ -476,11 +506,18 @@ function SkuForecastChart({ skuId }: { skuId: string }) {
         return "estable"
       })()
 
+      const mesCompraLabel = recomendacion.mesCompraIdx !== null
+        ? forecastPoints[recomendacion.mesCompraIdx].mes
+        : null
+
       return {
         points: [...histPoints, bridgePoint, ...forecastPoints],
         mape:   hwU.mape,
         tendencia,
         forecastStartIdx: histPoints.length,
+        stockActual,
+        recomendacion,
+        mesCompraLabel,
       }
     },
     staleTime: 5 * 60 * 1000,
@@ -489,90 +526,7 @@ function SkuForecastChart({ skuId }: { skuId: string }) {
   if (isLoading) return <div className="h-44 animate-pulse rounded-lg bg-muted" />
   if (error || !data) return <p className="text-xs text-muted-foreground">Sin datos de ventas.</p>
 
-  const TrendIcon = data.tendencia === "creciente"
-    ? TrendingUp
-    : data.tendencia === "decreciente"
-      ? TrendingDown
-      : Minus
-
-  const trendColor = data.tendencia === "creciente"
-    ? "text-emerald-600"
-    : data.tendencia === "decreciente"
-      ? "text-rose-500"
-      : "text-amber-500"
-
-  const firstForecastMes = data.points[data.forecastStartIdx]?.mes
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold">Pronóstico de ventas (6 meses)</h4>
-        <div className={cn("flex items-center gap-1 text-xs font-medium", trendColor)}>
-          <TrendIcon className="h-3.5 w-3.5" />
-          <span className="capitalize">{data.tendencia}</span>
-          {data.mape > 0 && (
-            <span className="text-muted-foreground font-normal ml-1">MAPE {data.mape.toFixed(0)}%</span>
-          )}
-        </div>
-      </div>
-
-      <ResponsiveContainer width="100%" height={180}>
-        <LineChart data={data.points} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-          <XAxis
-            dataKey="mes"
-            tick={{ fontSize: 10 }}
-            interval="preserveStartEnd"
-          />
-          <YAxis tick={{ fontSize: 10 }} width={48} />
-          <Tooltip
-            contentStyle={{ fontSize: 12 }}
-            formatter={(val, name) => [
-              typeof val === "number" ? val.toLocaleString("es-CL") : "—",
-              name === "unidades" ? "Real (u)" :
-              name === "forecast_u" ? "Pronóstico (u)" :
-              name === "ingreso" ? "Real ($)" : "Pronóstico ($)",
-            ]}
-          />
-          {firstForecastMes && (
-            <ReferenceLine
-              x={firstForecastMes}
-              stroke="hsl(var(--muted-foreground))"
-              strokeDasharray="4 4"
-              label={{ value: "hoy", fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
-            />
-          )}
-          <Line
-            type="monotone"
-            dataKey="unidades"
-            stroke="#d4177a"
-            strokeWidth={2}
-            dot={false}
-            connectNulls={false}
-            name="unidades"
-          />
-          <Line
-            type="monotone"
-            dataKey="forecast_u"
-            stroke="#d4177a"
-            strokeWidth={2}
-            strokeDasharray="5 4"
-            dot={false}
-            connectNulls={true}
-            name="forecast_u"
-          />
-          <Legend
-            iconType="line"
-            iconSize={12}
-            formatter={(v) =>
-              v === "unidades" ? "Real" :
-              v === "forecast_u" ? "Pronóstico" : v
-            }
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  )
+  return <DemandaCompraViz data={data} />
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -653,7 +607,7 @@ function SkuDetailPanel({ sku }: { sku: SkuConKpis }) {
 
         {/* Forecast chart */}
         <div className="rounded-lg border p-4">
-          <SkuForecastChart skuId={sku.id} />
+          <SkuForecastChart skuId={sku.id} precioLista={sku.precio_lista} />
         </div>
 
         {/* MDI badge */}

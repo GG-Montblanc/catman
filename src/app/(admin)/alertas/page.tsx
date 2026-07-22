@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { AlertasPageClient } from "./AlertasPageClient"
 
-export const metadata = { title: "Alertas — DBS Category Tracker" }
+export const metadata = { title: "Alertas — DBS CatMan" }
 
 export type AlertaRow = {
   sku_id: string

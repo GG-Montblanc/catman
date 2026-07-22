@@ -134,7 +134,7 @@ export default async function ReponedorPage({ params }: Props) {
                 DBS
               </div>
               <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: "0.1em" }}>
-                CATEGORY TRACKER
+                CATMAN
               </span>
             </div>
 
@@ -277,7 +277,7 @@ export default async function ReponedorPage({ params }: Props) {
           fontSize: 11,
           color: "#9ca3af",
         }}>
-          <span>DBS Category Tracker — Guía de reposición generada automáticamente</span>
+          <span>DBS CatMan — Guía de reposición generada automáticamente</span>
           <span>{new Date().toLocaleDateString("es-CL", { day: "2-digit", month: "long", year: "numeric" })}</span>
         </div>
       </div>
