@@ -26,8 +26,9 @@ import { cn } from "@/lib/utils"
 import { holtWinters } from "@/lib/forecast/holt-winters"
 import { buildPurchaseCurve } from "@/lib/forecast/purchase-curve"
 import { DemandaCompraViz } from "@/components/forecast/DemandaCompraViz"
-import { format, addMonths, parseISO } from "date-fns"
+import { format, addMonths, parseISO, eachMonthOfInterval } from "date-fns"
 import { es } from "date-fns/locale"
+import { classifyDemand } from "@/lib/forecast/demand-classification"
 
 const PAGE_SIZE = 50
 
@@ -436,11 +437,19 @@ function SkuForecastChart({ skuId, precioLista }: { skuId: string; precioLista: 
         byMonth.set(key, cur)
       }
 
-      const months    = Array.from(byMonth.keys()).sort()
-      const unidades  = months.map(m => byMonth.get(m)!.unidades)
-      const ingresos  = months.map(m => byMonth.get(m)!.ingreso)
+      const mesesConDatos = Array.from(byMonth.keys()).sort()
+      if (mesesConDatos.length === 0) return null
 
-      if (months.length === 0) return null
+      // Rellenar meses sin ventas con 0 (no solo los meses con filas en ventas_fact) —
+      // necesario para que Holt-Winters y la clasificación de demanda (ADI/CV²) vean
+      // los huecos reales en vez de tratar meses no-adyacentes como consecutivos.
+      const ultimoMesConDatos = mesesConDatos[mesesConDatos.length - 1]
+      const months = eachMonthOfInterval({
+        start: parseISO(since),
+        end: parseISO(ultimoMesConDatos + "-01"),
+      }).map(d => format(d, "yyyy-MM"))
+      const unidades  = months.map(m => byMonth.get(m)?.unidades ?? 0)
+      const ingresos  = months.map(m => byMonth.get(m)?.ingreso ?? 0)
 
       // Stock actual: suma de stock_fin del mes más reciente disponible (todas las tiendas)
       const ultimoMesInv = (invRows ?? [])[0]?.anio_mes
@@ -510,6 +519,8 @@ function SkuForecastChart({ skuId, precioLista }: { skuId: string; precioLista: 
         ? forecastPoints[recomendacion.mesCompraIdx].mes
         : null
 
+      const clasificacionDemanda = classifyDemand(unidades)
+
       return {
         points: [...histPoints, bridgePoint, ...forecastPoints],
         mape:   hwU.mape,
@@ -518,6 +529,7 @@ function SkuForecastChart({ skuId, precioLista }: { skuId: string; precioLista: 
         stockActual,
         recomendacion,
         mesCompraLabel,
+        clasificacionDemanda,
       }
     },
     staleTime: 5 * 60 * 1000,

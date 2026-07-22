@@ -4,9 +4,13 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ReferenceLine, ResponsiveContainer,
 } from "recharts"
-import { TrendingUp, TrendingDown, Minus, ShoppingCart, AlertTriangle } from "lucide-react"
+import { TrendingUp, TrendingDown, Minus, ShoppingCart, AlertTriangle, Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { PurchaseRecommendation } from "@/lib/forecast/purchase-curve"
+import {
+  DEMAND_PATTERN_LABEL, DEMAND_PATTERN_DESC, DEMAND_PATTERN_COLOR,
+  type DemandClassification,
+} from "@/lib/forecast/demand-classification"
 
 export type DemandaCompraPoint = {
   mes: string
@@ -23,6 +27,7 @@ export type DemandaCompraData = {
   stockActual: number
   recomendacion: PurchaseRecommendation
   mesCompraLabel: string | null
+  clasificacionDemanda?: DemandClassification | null
 }
 
 const fmtCLP0 = (n: number) =>
@@ -43,6 +48,7 @@ export function DemandaCompraViz({ data, title }: { data: DemandaCompraData; tit
 
   const firstForecastMes = data.points[data.forecastStartIdx]?.mes
   const rec = data.recomendacion
+  const clas = data.clasificacionDemanda
 
   return (
     <div className="space-y-3">
@@ -56,6 +62,19 @@ export function DemandaCompraViz({ data, title }: { data: DemandaCompraData; tit
           )}
         </div>
       </div>
+
+      {clas && (
+        <div className={cn("rounded-lg border p-3 flex items-start gap-2.5", DEMAND_PATTERN_COLOR[clas.patron])}>
+          <Activity className="h-4 w-4 mt-0.5 shrink-0" />
+          <div className="text-xs leading-snug">
+            <p className="font-semibold">
+              Patrón de demanda: {DEMAND_PATTERN_LABEL[clas.patron]}
+              <span className="font-normal opacity-70 ml-1.5">(ADI {clas.adi} · CV² {clas.cv2})</span>
+            </p>
+            <p className="opacity-90 mt-0.5">{DEMAND_PATTERN_DESC[clas.patron]}</p>
+          </div>
+        </div>
+      )}
 
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={data.points} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
