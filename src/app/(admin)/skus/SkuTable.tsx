@@ -29,6 +29,7 @@ import { DemandaCompraViz } from "@/components/forecast/DemandaCompraViz"
 import { format, addMonths, parseISO, eachMonthOfInterval } from "date-fns"
 import { es } from "date-fns/locale"
 import { classifyDemand } from "@/lib/forecast/demand-classification"
+import { crostonSBA } from "@/lib/forecast/croston"
 
 const PAGE_SIZE = 50
 
@@ -443,9 +444,13 @@ function SkuForecastChart({ skuId, precioLista }: { skuId: string; precioLista: 
       // Rellenar meses sin ventas con 0 (no solo los meses con filas en ventas_fact) —
       // necesario para que Holt-Winters y la clasificación de demanda (ADI/CV²) vean
       // los huecos reales en vez de tratar meses no-adyacentes como consecutivos.
+      // El rango parte en el primer mes con datos de este SKU (no en el límite fijo
+      // de 24 meses atrás): antes de eso no es que la demanda fuera 0, es que el
+      // dataset de ventas simplemente no cubre ese período para nadie.
+      const primerMesConDatos = mesesConDatos[0]
       const ultimoMesConDatos = mesesConDatos[mesesConDatos.length - 1]
       const months = eachMonthOfInterval({
-        start: parseISO(since),
+        start: parseISO(primerMesConDatos + "-01"),
         end: parseISO(ultimoMesConDatos + "-01"),
       }).map(d => format(d, "yyyy-MM"))
       const unidades  = months.map(m => byMonth.get(m)?.unidades ?? 0)
@@ -458,9 +463,16 @@ function SkuForecastChart({ skuId, precioLista }: { skuId: string; precioLista: 
         .reduce((s, r) => s + (r.stock_fin ?? 0), 0)
       const leadTimeDias = skuRow?.lead_time_dias ?? 150
 
-      // Run Holt-Winters for 6-month forecast
-      const hwU = holtWinters(unidades, { horizon: 6 })
-      const hwI = holtWinters(ingresos,  { horizon: 6 })
+      const clasificacionDemanda = classifyDemand(unidades)
+
+      // Holt-Winters asume una serie continua (nivel + tendencia + estacionalidad).
+      // Con demanda Intermittent/Lumpy (muchos meses en 0) sobreajusta y da
+      // pronósticos poco confiables (MAPE altísimo) — para esos dos patrones
+      // se usa Croston/SBA, el método estándar para demanda esporádica.
+      const esEsporadica = clasificacionDemanda?.patron === "intermittent" || clasificacionDemanda?.patron === "lumpy"
+
+      const hwU = esEsporadica ? crostonSBA(unidades, { horizon: 6 }) : holtWinters(unidades, { horizon: 6 })
+      const hwI = esEsporadica ? crostonSBA(ingresos,  { horizon: 6 }) : holtWinters(ingresos,  { horizon: 6 })
 
       const { stockProyectado, recomendacion } = buildPurchaseCurve({
         forecastUnidades: hwU.forecast,
@@ -518,8 +530,6 @@ function SkuForecastChart({ skuId, precioLista }: { skuId: string; precioLista: 
       const mesCompraLabel = recomendacion.mesCompraIdx !== null
         ? forecastPoints[recomendacion.mesCompraIdx].mes
         : null
-
-      const clasificacionDemanda = classifyDemand(unidades)
 
       return {
         points: [...histPoints, bridgePoint, ...forecastPoints],
