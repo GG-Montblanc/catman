@@ -899,7 +899,7 @@ RETURNS JSON
 LANGUAGE plpgsql STABLE SECURITY DEFINER AS $$
 DECLARE
   v_inicio        DATE;
-  v_formato       TEXT;
+  v_formato       public.formato_tienda;
   v_kpis          JSON;
   v_benchmark     JSON;
   v_top_cats      JSON;
