@@ -551,13 +551,13 @@ AS $$
     s.precio_lista                                             AS precio_lista,
     GREATEST(
       0,
-      ROUND(COALESCE(vb.avg_ventas_mensual, 0) * 5)
+      ROUND(COALESCE(vb.avg_ventas_mensual, 0) * 10 / 4)
         - COALESCE(ia.stock_actual, 0)
     )::INT                                                     AS unidades_sugeridas,
     GREATEST(
       0,
       (
-        ROUND(COALESCE(vb.avg_ventas_mensual, 0) * 5)
+        ROUND(COALESCE(vb.avg_ventas_mensual, 0) * 10 / 4)
           - COALESCE(ia.stock_actual, 0)
       ) * s.precio_lista
     )                                                          AS valor_orden
@@ -581,7 +581,7 @@ AS $$
     -- Solo mostrar SKUs donde se sugiere comprar algo
     AND GREATEST(
       0,
-      ROUND(COALESCE(vb.avg_ventas_mensual, 0) * 5)
+      ROUND(COALESCE(vb.avg_ventas_mensual, 0) * 10 / 4)
         - COALESCE(ia.stock_actual, 0)
     ) > 0
   ORDER BY valor_orden DESC NULLS LAST;
