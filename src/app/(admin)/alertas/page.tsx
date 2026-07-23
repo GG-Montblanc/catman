@@ -13,6 +13,7 @@ export type AlertaRow = {
   valor_gmroi: number | null
   valor_mdi: number | null
   imagen_url: string | null
+  patron_demanda: "smooth" | "erratic" | "intermittent" | "lumpy" | null
 }
 
 export default async function AlertasPage() {

@@ -30,6 +30,14 @@ type Alerta = {
   valor_gmroi: number | null
   valor_mdi: number | null
   imagen_url: string | null
+  patron_demanda: "smooth" | "erratic" | "intermittent" | "lumpy" | null
+}
+
+const PATRON_LABEL: Record<string, string> = {
+  smooth: "Smooth",
+  erratic: "Erratic",
+  intermittent: "Intermittent",
+  lumpy: "Lumpy",
 }
 
 const TIPO_CONFIG = {
@@ -239,7 +247,15 @@ function AlertRow({ alerta }: { alerta: Alerta }) {
             <Badge className={cn("text-xs shrink-0", cfg.badge)}>
               {cfg.label}
             </Badge>
+            {alerta.patron_demanda && (
+              <Badge variant="outline" className="text-[10px] shrink-0 font-normal text-muted-foreground">
+                {PATRON_LABEL[alerta.patron_demanda] ?? alerta.patron_demanda}
+              </Badge>
+            )}
           </div>
+          {alerta.marca_nombre && (
+            <p className="text-xs text-muted-foreground leading-tight mt-0.5">{alerta.marca_nombre}</p>
+          )}
           <p className="text-xs text-muted-foreground leading-tight mt-0.5 line-clamp-1">
             {alerta.descripcion}
           </p>

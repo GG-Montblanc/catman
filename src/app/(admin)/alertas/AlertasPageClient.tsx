@@ -159,6 +159,11 @@ function AlertRow({ alerta }: { alerta: AlertaRow }) {
           <Badge className={cn("text-xs shrink-0", SEV_BADGE[alerta.severidad])}>
             Prioridad {SEV_LABEL[alerta.severidad]}
           </Badge>
+          {alerta.patron_demanda && (
+            <Badge variant="outline" className="text-[10px] shrink-0 font-normal text-muted-foreground capitalize">
+              {alerta.patron_demanda}
+            </Badge>
+          )}
         </div>
         {alerta.marca_nombre && (
           <p className="text-xs text-muted-foreground mt-0.5">{alerta.marca_nombre}</p>
@@ -235,6 +240,7 @@ export function AlertasPageClient({ alertas }: { alertas: AlertaRow[] }) {
         Descripción:   a.descripcion,
         GMROI:         a.valor_gmroi?.toFixed(2) ?? "",
         "MDI (meses)": a.valor_mdi?.toFixed(1) ?? "",
+        "Patrón demanda": a.patron_demanda ?? "",
       }))
     )
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
