@@ -152,14 +152,32 @@ export function MarcaDemandaChart() {
     staleTime: 30 * 60 * 1000,
   })
 
+  // Marca con más ingreso reciente — para no defaultear a la primera
+  // alfabéticamente (que casi siempre no tiene datos de venta).
+  const { data: marcaTopId } = useQuery({
+    queryKey: ["marca_top_ingreso"],
+    queryFn: async () => {
+      const sb = createClient()
+      const { data, error } = await (sb.rpc as any)("get_espacio_marca", {})
+      if (error) throw error
+      const rows = (data ?? []) as { marca_id: string; marca_nombre: string }[]
+      // Preferir una marca real por sobre el catch-all "Otras marcas"
+      const top = rows.find(r => r.marca_nombre !== "Otras marcas") ?? rows[0]
+      return top?.marca_id ?? null
+    },
+    staleTime: 30 * 60 * 1000,
+  })
+
   const [marcaId, setMarcaId] = useState<string>("")
 
+  const defaultId = marcaTopId ?? marcas[0]?.id
+
   const marcaActual = useMemo(
-    () => marcas.find(m => m.id === (marcaId || marcas[0]?.id)),
-    [marcas, marcaId]
+    () => marcas.find(m => m.id === (marcaId || defaultId)),
+    [marcas, marcaId, defaultId]
   )
 
-  const selectedId = marcaId || marcas[0]?.id || ""
+  const selectedId = marcaId || defaultId || ""
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["marca_demanda", selectedId],
