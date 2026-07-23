@@ -24,7 +24,7 @@ export default async function OptimizacionPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Optimización</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Matriz cuadrantes, compras sugeridas y espacio por marca
+          Qué y cuándo comprar, pedido por marca, y análisis de portafolio
         </p>
       </div>
       <OptimizacionClient

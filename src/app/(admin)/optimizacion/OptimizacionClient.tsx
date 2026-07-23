@@ -48,6 +48,7 @@ import { ChevronDown, ChevronUp, ChevronsUpDown, Download, Search } from "lucide
 import { cn } from "@/lib/utils"
 import type { CuadranteRow, EspacioMarcaRow } from "./page"
 import { MarcaDemandaChart } from "./MarcaDemandaChart"
+import { PedidoPorMarcaTable } from "./PedidoPorMarcaTable"
 import { EspacioMarcaClient } from "./espacio-marca/EspacioMarcaClient"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -596,7 +597,7 @@ function ComprasTable() {
 
 // ─── Main client component ────────────────────────────────────────────────────
 
-const VALID_TABS = ["cuadrantes", "compras", "cuando-comprar", "espacio-marca"] as const
+const VALID_TABS = ["cuando-comprar", "pedido-marca", "compras", "cuadrantes", "espacio-marca"] as const
 type TabValue = (typeof VALID_TABS)[number]
 
 export function OptimizacionClient({
@@ -618,7 +619,7 @@ export function OptimizacionClient({
   const tabParam = searchParams.get("tab")
   const activeTab: TabValue = (VALID_TABS as readonly string[]).includes(tabParam ?? "")
     ? (tabParam as TabValue)
-    : "cuadrantes"
+    : "cuando-comprar"
 
   const handleTabChange = useCallback((value: string) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -629,11 +630,24 @@ export function OptimizacionClient({
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange}>
       <TabsList className="mb-5">
-        <TabsTrigger value="cuadrantes">Matriz cuadrantes</TabsTrigger>
+        <TabsTrigger value="cuando-comprar">Qué y cuándo comprar</TabsTrigger>
+        <TabsTrigger value="pedido-marca">Pedido por marca</TabsTrigger>
         <TabsTrigger value="compras">Órdenes de compra</TabsTrigger>
-        <TabsTrigger value="cuando-comprar">Cuándo comprar (marca)</TabsTrigger>
+        <TabsTrigger value="cuadrantes">Matriz cuadrantes</TabsTrigger>
         <TabsTrigger value="espacio-marca">Espacio por marca</TabsTrigger>
       </TabsList>
+
+      <TabsContent value="cuando-comprar">
+        <MarcaDemandaChart />
+      </TabsContent>
+
+      <TabsContent value="pedido-marca">
+        <PedidoPorMarcaTable />
+      </TabsContent>
+
+      <TabsContent value="compras">
+        <ComprasTable />
+      </TabsContent>
 
       <TabsContent value="cuadrantes">
         <MatrizCuadrantes
@@ -641,14 +655,6 @@ export function OptimizacionClient({
           tiendas={tiendas}
           categorias={categorias}
         />
-      </TabsContent>
-
-      <TabsContent value="compras">
-        <ComprasTable />
-      </TabsContent>
-
-      <TabsContent value="cuando-comprar">
-        <MarcaDemandaChart />
       </TabsContent>
 
       <TabsContent value="espacio-marca">
