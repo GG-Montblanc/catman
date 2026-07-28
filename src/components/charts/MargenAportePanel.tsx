@@ -90,12 +90,12 @@ export function MargenAportePanel({ filters }: Props) {
       <div className="rounded-xl border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 px-4 py-3 flex items-start gap-2.5">
         <span className="text-base shrink-0">ℹ️</span>
         <p className="text-xs text-blue-900 dark:text-blue-300 leading-relaxed">
-          <strong>Margen con aporte de proveedores (estimado):</strong> no existe en el sistema un registro real
-          de fondeo comercial de proveedores (rebates, fondos de marketing, descuentos pie de factura). Se estima
-          de forma determinística — solo para marcas de terceros — comparando el margen bruto de cada marca
-          contra el resto del portafolio: la marca con el margen más bajo del período recibe 8% de aporte
-          estimado, la de margen más alto recibe 2%, y el resto se interpola linealmente. No es una cifra
-          contractual real.
+          <strong>Margen con aporte de proveedores (simulado):</strong> no existe en el sistema un registro real
+          de contratos de proveedores. Se simula un "contrato" por marca de tercero a partir de dos señales del
+          mix real: su posición de margen bruto dentro del portafolio (marcas con margen más bajo negocian más
+          aporte total, entre 2% y 8% del ingreso) y su percentil de ingreso (marcas más grandes reparten más de
+          ese aporte hacia fondo de marketing en vez de rebate simple). El contrato queda fijo hasta la próxima
+          recalculación — no es un dato contractual real.
         </p>
       </div>
 
@@ -203,6 +203,7 @@ export function MargenAportePanel({ filters }: Props) {
                 <th className="text-right px-4 py-2.5 font-semibold text-xs text-muted-foreground whitespace-nowrap">Ingreso</th>
                 <th className="text-right px-4 py-2.5 font-semibold text-xs text-muted-foreground whitespace-nowrap">Margen bruto</th>
                 <th className="text-right px-4 py-2.5 font-semibold text-xs text-muted-foreground whitespace-nowrap">% Aporte</th>
+                <th className="text-right px-4 py-2.5 font-semibold text-xs text-muted-foreground whitespace-nowrap">Composición contrato</th>
                 <th className="text-right px-4 py-2.5 font-semibold text-xs text-muted-foreground whitespace-nowrap">Aporte $</th>
                 <th className="text-right px-4 py-2.5 font-semibold text-xs text-muted-foreground whitespace-nowrap">Margen c/ aporte</th>
               </tr>
@@ -210,10 +211,10 @@ export function MargenAportePanel({ filters }: Props) {
             <tbody className="divide-y">
               {loadingPorMarca ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}><td colSpan={6} className="px-4 py-3"><div className="h-4 rounded bg-muted animate-pulse" /></td></tr>
+                  <tr key={i}><td colSpan={7} className="px-4 py-3"><div className="h-4 rounded bg-muted animate-pulse" /></td></tr>
                 ))
               ) : marcasVisibles.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-10 text-muted-foreground text-sm">Sin datos con los filtros actuales</td></tr>
+                <tr><td colSpan={7} className="text-center py-10 text-muted-foreground text-sm">Sin datos con los filtros actuales</td></tr>
               ) : (
                 marcasVisibles.map(m => (
                   <tr key={m.marca_id} className="hover:bg-muted/30 transition-colors">
@@ -228,6 +229,15 @@ export function MargenAportePanel({ filters }: Props) {
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums">
                       {m.propia ? "—" : `${m.aporte_pct.toFixed(1)}%`}
+                    </td>
+                    <td className="px-4 py-2.5 text-right whitespace-nowrap" title={m.criterio ?? undefined}>
+                      {m.propia ? (
+                        "—"
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          rebate {m.rebate_volumen_pct.toFixed(1)}% · marketing {m.fondo_marketing_pct.toFixed(1)}%
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums text-blue-600">
                       {m.propia ? "—" : fmtCLP(m.total_aporte)}

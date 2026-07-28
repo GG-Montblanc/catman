@@ -102,6 +102,9 @@ export type MargenAportePorMarca = {
   total_aporte: number
   total_margen_con_aporte: number
   margen_pct_con_aporte: number | null
+  rebate_volumen_pct: number
+  fondo_marketing_pct: number
+  criterio: string | null
 }
 
 export type MargenAporteTendencia = {

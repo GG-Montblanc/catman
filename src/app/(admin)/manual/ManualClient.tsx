@@ -141,9 +141,9 @@ const KPIS: KpiEntry[] = [
     sigla: "Tasa de Disponibilidad",
     icon: ShieldCheck,
     iconColor: "text-teal-600",
-    formula: "Estimado a partir del MDI (no medido directo — ver nota abajo)",
+    formula: "MIN(MDI/2.5, 1.3 − Sell-to-Stock), acotado entre 40% y 100%",
     descripcion:
-      "Porcentaje de días en que el SKU tenía stock disponible para la venta. Detecta quiebres de stock que el sellthru no captura. Nota: el dataset actual no registra quiebres de stock reales (el inventario de fin de mes nunca llega a 0), así que este valor es una estimación derivada del MDI — mientras más ajustada la cobertura, menor el fill rate estimado.",
+      "Porcentaje de días en que el SKU tenía stock disponible para la venta. Detecta quiebres de stock que el sellthru no captura. Nota: el dataset actual no registra quiebres de stock reales (el inventario de fin de mes nunca llega a 0), así que este valor es una simulación construida a partir de dos señales reales del mix de cada SKU: su cobertura de inventario (MDI) y su velocidad de venta relativa al stock (Sell-to-Stock) — se toma la más pesimista de las dos, porque cualquiera de las dos por sí sola ya indica riesgo real de quiebre.",
     para_que_sirve:
       "Identificar SKUs que pierden ventas por falta de stock. Un fill rate bajo con buen sellthru indica que se vende todo lo que llega pero falta reposición.",
     semaforos: [
@@ -219,13 +219,13 @@ const KPIS: KpiEntry[] = [
   },
   {
     id: "margen-aporte",
-    nombre: "Margen con Aporte de Proveedores (estimado)",
+    nombre: "Margen con Aporte de Proveedores (simulado)",
     sigla: "Margen + Fondeo Comercial",
     icon: HandCoins,
     iconColor: "text-blue-600",
-    formula: "Margen bruto + (Ingreso × % aporte estimado, solo marcas de terceros)",
+    formula: "Margen bruto + (Ingreso × % aporte del contrato simulado, solo marcas de terceros)",
     descripcion:
-      "El margen bruto no refleja el fondeo comercial que las marcas de terceros aportan al retailer (rebates por volumen, fondos de marketing, descuentos pie de factura). El sistema no registra ningún dato real de proveedores, así que este aporte se estima de forma determinística — nunca al azar — a partir de señales que sí existen: solo aplica a marcas de terceros (no a marca propia), y el % de aporte se calcula comparando el margen bruto de cada marca contra el resto del portafolio del período — la marca con el margen más bajo recibe 8% de aporte estimado, la de margen más alto recibe 2%, y el resto se interpola linealmente. Replica el patrón real de la industria donde el proveedor subsidia más las líneas de menor margen relativo para mantener espacio de góndola.",
+      "El margen bruto no refleja el fondeo comercial que las marcas de terceros aportan al retailer (rebates por volumen, fondos de marketing, descuentos pie de factura). El sistema no registra ningún contrato real de proveedores, así que se simula uno por marca de tercero (tabla contrato_proveedor_marca) a partir de dos señales reales del mix: (1) posición de margen bruto de la marca dentro del portafolio — determina el aporte total, entre 2% y 8% del ingreso, mayor cuanto menor el margen relativo — y (2) percentil de ingreso de la marca — determina cómo se reparte ese aporte entre rebate por volumen y fondo de marketing: marcas más grandes destinan proporcionalmente más a fondo de marketing. El contrato queda fijo hasta la próxima recalculación (no fluctúa mes a mes como antes), igual que un contrato real.",
     para_que_sirve:
       "Ver la rentabilidad real de una marca de tercero considerando el fondeo que negocia, no solo el margen bruto de venta. Útil para decidir espacio de góndola y prioridad de surtido cuando el margen bruto solo no cuenta toda la historia.",
     semaforos: [
