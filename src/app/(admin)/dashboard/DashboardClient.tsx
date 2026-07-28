@@ -120,7 +120,7 @@ export function DashboardClient() {
       )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
         <KpiCard
           title="GMROI"
           value={kpis?.avg_gmroi ?? null}
@@ -153,6 +153,18 @@ export function DashboardClient() {
               ? kpis!.avg_margen_pct! >= 35 ? "green" : kpis!.avg_margen_pct! >= 20 ? "yellow" : "red"
               : "gray"
           }
+          loading={loadingKpis}
+        />
+        <KpiCard
+          title="Rotación"
+          value={kpis?.avg_rotacion_anual ?? null}
+          unit="x/año"
+          color={
+            (kpis?.avg_rotacion_anual ?? null) != null
+              ? kpis!.avg_rotacion_anual! >= 4 ? "green" : kpis!.avg_rotacion_anual! >= 2 ? "yellow" : "red"
+              : "gray"
+          }
+          description="veces al año"
           loading={loadingKpis}
         />
         <KpiCard

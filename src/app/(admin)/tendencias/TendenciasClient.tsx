@@ -15,6 +15,7 @@ import {
 import { format, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
 import { createClient } from "@/lib/supabase/client"
+import { cn } from "@/lib/utils"
 import {
   Select,
   SelectContent,
@@ -23,6 +24,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { fetchRentabilidadAtributo } from "@/lib/kpi/queries"
+import { gmroiColor } from "@/lib/kpi/types"
 
 type Categoria = {
   id: string
@@ -126,6 +130,14 @@ export function TendenciasClient({ categorias }: { categorias: Categoria[] }) {
   })
 
   const atributos = atributosData ?? []
+
+  const { data: rentabilidadData, isLoading: loadingRentabilidad } = useQuery({
+    queryKey: ["rentabilidad_atributo", categoriaId, atributo, meses],
+    queryFn: () => fetchRentabilidadAtributo(categoriaId, atributo, meses),
+    enabled: !!categoriaId && !!atributo,
+    staleTime: 5 * 60 * 1000,
+  })
+  const rentabilidad = rentabilidadData ?? []
 
   const { data: tendenciasData, isLoading: loadingTendencias } = useQuery({
     queryKey: ["tendencias_atributo", categoriaId, atributo, meses],
@@ -289,6 +301,68 @@ export function TendenciasClient({ categorias }: { categorias: Categoria[] }) {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      )}
+
+      {/* Rentabilidad por valor de atributo */}
+      {atributo && (
+        <div className="space-y-2">
+          <div>
+            <h2 className="text-sm font-semibold">Rentabilidad por valor ({atributo})</h2>
+            <p className="text-xs text-muted-foreground">
+              Compara GMROI y margen entre valores del atributo — no solo cuánto se vende, sino qué tan rentable es
+            </p>
+          </div>
+          {loadingRentabilidad ? (
+            <div className="h-40 rounded-xl border bg-muted animate-pulse" />
+          ) : rentabilidad.length === 0 ? (
+            <Card>
+              <CardContent className="flex items-center justify-center h-24 text-muted-foreground text-sm">
+                Sin datos de rentabilidad para este atributo
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="rounded-xl border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted/40 border-b">
+                      <th className="text-left px-4 py-2.5 font-semibold text-xs text-muted-foreground whitespace-nowrap">Valor</th>
+                      <th className="text-right px-4 py-2.5 font-semibold text-xs text-muted-foreground whitespace-nowrap">SKUs</th>
+                      <th className="text-right px-4 py-2.5 font-semibold text-xs text-muted-foreground whitespace-nowrap">% Ingreso</th>
+                      <th className="text-right px-4 py-2.5 font-semibold text-xs text-muted-foreground whitespace-nowrap">Sellthru</th>
+                      <th className="text-right px-4 py-2.5 font-semibold text-xs text-muted-foreground whitespace-nowrap">Margen</th>
+                      <th className="text-center px-4 py-2.5 font-semibold text-xs text-muted-foreground whitespace-nowrap">GMROI</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {rentabilidad.map(r => (
+                      <tr key={r.valor} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-2.5 font-medium whitespace-nowrap">{r.valor}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{r.n_skus}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">{r.pct_ingreso_categoria?.toFixed(1) ?? "—"}%</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">{r.avg_sellthru_pct?.toFixed(1) ?? "—"}%</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">{r.avg_margen_pct?.toFixed(1) ?? "—"}%</td>
+                        <td className="px-4 py-2.5 text-center">
+                          <Badge
+                            className={cn(
+                              "tabular-nums font-bold",
+                              gmroiColor(r.avg_gmroi) === "green" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
+                                : gmroiColor(r.avg_gmroi) === "yellow" ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                                : gmroiColor(r.avg_gmroi) === "red" ? "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300"
+                                : "bg-muted text-muted-foreground"
+                            )}
+                          >
+                            {r.avg_gmroi?.toFixed(2) ?? "—"}×
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Insights panel */}

@@ -21,6 +21,8 @@ import {
   ShoppingCart,
   Smartphone,
   HandCoins,
+  Repeat,
+  Palette,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
@@ -240,6 +242,59 @@ const KPIS: KpiEntry[] = [
       "Marca de tercero con margen bruto 20% → aporte estimado 8% del ingreso → margen con aporte ≈ 28%",
     donde_ver: [
       { label: "Dashboard → Margen c/ aporte proveedores", href: "/dashboard" },
+    ],
+  },
+  {
+    id: "rotacion",
+    nombre: "Rotación de Inventario",
+    sigla: "Veces al año",
+    icon: Repeat,
+    iconColor: "text-violet-600",
+    formula: "(Costo de venta mensual / Costo de inventario promedio) × 12",
+    descripcion:
+      "Cuántas veces al año se \"da vuelta\" el inventario de un SKU o marca. Es el mismo par de datos que usa GMROI (costo de venta y costo de inventario), pero expresado como N veces/año en vez de retorno sobre inversión — más fácil de comunicar a compras y proveedores. Relacionado con el MDI (meses de inventario): a mayor rotación, menor MDI.",
+    para_que_sirve:
+      "Comparar velocidad de rotación entre SKUs, marcas o categorías con una cifra estándar de la industria retail. Una rotación baja con buen margen puede seguir siendo rentable, pero inmoviliza más capital.",
+    semaforos: [
+      { label: "Alta",     color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", range: "≥ 4x/año" },
+      { label: "Media",    color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200",   range: "2 – 3.9x/año" },
+      { label: "Baja",     color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-200",    range: "< 2x/año" },
+    ],
+    acciones: [
+      { estado: "Rotación < 2x/año", accion: "Revisar si el margen compensa el capital inmovilizado. Evaluar reducir stock objetivo o descontinuar." },
+      { estado: "Rotación ≥ 4x/año", accion: "Asegurar que el fill rate acompañe — alta rotación con quiebres frecuentes pierde ventas." },
+    ],
+    ejemplo:
+      "Costo de venta mensual $2M, costo de inventario promedio $6M → Rotación = (2M/6M)×12 = 4x al año",
+    donde_ver: [
+      { label: "Dashboard → Rotación", href: "/dashboard" },
+      { label: "SKUs → Tabla", href: "/skus" },
+    ],
+  },
+  {
+    id: "rentabilidad-atributo",
+    nombre: "Rentabilidad por Valor de Atributo",
+    sigla: "GMROI por Atributo",
+    icon: Palette,
+    iconColor: "text-fuchsia-600",
+    formula: "GMROI / Margen % / Sellthru % promedio, agrupado por valor de atributo",
+    descripcion:
+      "Complementa la vista de Tendencias (que muestra evolución de ventas en el tiempo) con una comparación de rentabilidad entre valores de un mismo atributo dentro del período seleccionado — ej. no solo si el rojo vende más o menos que el nude, sino cuál de los dos rinde mejor en GMROI y margen.",
+    para_que_sirve:
+      "Decidir dónde poner foco de surtido y espacio: un valor de atributo puede estar creciendo en ventas pero con rentabilidad mediocre, mientras otro vende menos pero con mucho mejor margen y GMROI.",
+    semaforos: [
+      { label: "Alto rendimiento",  color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", range: "GMROI ≥ 2.6×" },
+      { label: "Rendimiento medio", color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200",   range: "GMROI 1.4 – 2.6×" },
+      { label: "Bajo rendimiento",  color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-200",    range: "GMROI < 1.4×" },
+    ],
+    acciones: [
+      { estado: "Valor con % ingreso alto pero GMROI bajo", accion: "Vende mucho pero rinde poco — revisar precio, costo o nivel de descuento del valor." },
+      { estado: "Valor con GMROI alto pero % ingreso bajo", accion: "Oportunidad de crecimiento — considerar ampliar surtido o espacio de ese valor." },
+    ],
+    ejemplo:
+      "Labiales 'nude': GMROI 3.1× vs. labiales 'rojo': GMROI 1.8× → el nude es más rentable aunque ambos vendan volúmenes similares",
+    donde_ver: [
+      { label: "Tendencias → Rentabilidad por valor", href: "/tendencias" },
     ],
   },
   {

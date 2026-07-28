@@ -5,6 +5,7 @@ export type GlobalKpis = {
   avg_margen_pct: number | null
   avg_dias_stock: number | null
   avg_fill_rate: number | null
+  avg_rotacion_anual: number | null
   pct_obsoletos: number | null
   total_ingreso: number | null
   total_margen: number | null
@@ -17,8 +18,20 @@ export type TendenciaMensual = {
   avg_sellthru: number | null
   avg_margen_pct: number | null
   avg_fill_rate: number | null
+  avg_rotacion_anual: number | null
   total_ingreso: number | null
   total_margen: number | null
+}
+
+export type RentabilidadAtributo = {
+  valor: string
+  n_skus: number
+  total_unidades: number
+  total_ingreso: number
+  avg_gmroi: number | null
+  avg_margen_pct: number | null
+  avg_sellthru_pct: number | null
+  pct_ingreso_categoria: number | null
 }
 
 export type SkuKpiItem = {
@@ -64,6 +77,7 @@ export type SkuConKpis = {
   avg_dias_stock: number | null
   avg_fill_rate: number | null
   avg_mdi_meses: number | null
+  avg_rotacion_anual: number | null
   total_ingreso: number | null
   total_margen: number | null
 }

@@ -14,13 +14,14 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import type { TendenciaMensual } from "@/lib/kpi/types"
 
-type MetricKey = "avg_gmroi" | "avg_sellthru" | "avg_margen_pct" | "avg_fill_rate"
+type MetricKey = "avg_gmroi" | "avg_sellthru" | "avg_margen_pct" | "avg_fill_rate" | "avg_rotacion_anual"
 
 const METRICS: { key: MetricKey; label: string; color: string; unit: string }[] = [
   { key: "avg_gmroi",      label: "GMROI",      color: "oklch(0.62 0.20 358)", unit: "x" },
   { key: "avg_sellthru",   label: "Sellthru %", color: "oklch(0.65 0.09 198)", unit: "%" },
   { key: "avg_margen_pct", label: "Margen %",   color: "oklch(0.72 0.14 142)", unit: "%" },
   { key: "avg_fill_rate",  label: "Fill Rate %", color: "oklch(0.68 0.10 60)",  unit: "%" },
+  { key: "avg_rotacion_anual", label: "Rotación x/año", color: "oklch(0.55 0.18 280)", unit: "x" },
 ]
 
 type Props = {

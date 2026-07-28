@@ -215,6 +215,12 @@ export function SkuTable() {
         )
       },
     }),
+    col.accessor("avg_rotacion_anual", {
+      header: "Rotación",
+      cell: ({ getValue }) => (
+        <span className="tabular-nums text-sm">{getValue()?.toFixed(1) ?? "—"}x/a</span>
+      ),
+    }),
     col.accessor("total_ingreso", {
       header: "Ingreso",
       enableSorting: true,
@@ -600,6 +606,7 @@ function SkuDetailPanel({ sku }: { sku: SkuConKpis }) {
             { label: "Días Stock", value: sku.avg_dias_stock?.toFixed(0), unit: " días", color: "gray" as const },
             { label: "Fill Rate (est.)",  value: sku.avg_fill_rate?.toFixed(1), unit: "%", color: "gray" as const },
             { label: "MDI",        value: sku.avg_mdi_meses?.toFixed(1), unit: " meses", color: "gray" as const },
+            { label: "Rotación",   value: sku.avg_rotacion_anual?.toFixed(1), unit: "x/año", color: "gray" as const },
             { label: "Precio lista", value: sku.precio_lista != null
               ? new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(sku.precio_lista)
               : null,

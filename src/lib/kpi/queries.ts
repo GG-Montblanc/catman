@@ -8,6 +8,7 @@ import type {
   MargenAporteResumen,
   MargenAportePorMarca,
   MargenAporteTendencia,
+  RentabilidadAtributo,
 } from "./types"
 
 function getClient() {
@@ -127,6 +128,24 @@ export async function fetchMargenAporteTendencia(
     return []
   }
   return (data as MargenAporteTendencia[]) ?? []
+}
+
+export async function fetchRentabilidadAtributo(
+  categoriaId: string,
+  atributo: string,
+  meses = 12,
+): Promise<RentabilidadAtributo[]> {
+  const sb = getClient()
+  const { data, error } = await (sb.rpc as any)("get_rentabilidad_atributo", {
+    p_categoria_id: categoriaId,
+    p_atributo: atributo,
+    p_meses: meses,
+  })
+  if (error) {
+    console.error("get_rentabilidad_atributo:", error.message)
+    return []
+  }
+  return (data as RentabilidadAtributo[]) ?? []
 }
 
 // Helpers para el FilterBar: carga opciones de filtros
