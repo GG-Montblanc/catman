@@ -1,11 +1,34 @@
 "use client"
 
-import { useRef } from "react"
+import { useMemo, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import Papa from "papaparse"
+import { createClient } from "@/lib/supabase/client"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import type { EspacioMarcaRow } from "../page"
+
+export type EspacioMarcaRow = {
+  marca_id: string
+  marca_nombre: string
+  slots_actuales: number
+  pct_espacio: number
+  total_ingreso: number
+  pct_ventas: number
+  avg_gmroi: number
+  slots_optimos: number
+}
+
+type TiendaOption = { id: string; nombre: string; canal: string; region: string }
+
+const CANAL_LABEL: Record<string, string> = {
+  mall: "Mall",
+  calle: "Calle",
+  outlet: "Outlet",
+}
 
 function gmroiBadge(v: number) {
   if (v >= 3)
@@ -23,14 +46,57 @@ function fmtCLP(n: number) {
   }).format(n)
 }
 
-export function EspacioMarcaClient({
-  data,
-  totalSlots,
-}: {
-  data: EspacioMarcaRow[]
-  totalSlots: number
-}) {
-  const tableRef = useRef<HTMLDivElement>(null)
+async function fetchTiendas(): Promise<TiendaOption[]> {
+  const sb = createClient()
+  const { data, error } = await sb
+    .from("tiendas")
+    .select("id, nombre, canal, region")
+    .eq("activa", true)
+    .order("nombre")
+  if (error) throw error
+  return (data ?? []) as TiendaOption[]
+}
+
+async function fetchEspacioMarca(filters: {
+  tiendaId: string | null
+  canal: string | null
+  region: string | null
+}): Promise<EspacioMarcaRow[]> {
+  const sb = createClient()
+  const { data, error } = await (sb.rpc as any)("get_espacio_marca", {
+    p_tienda_id: filters.tiendaId,
+    p_canal: filters.canal,
+    p_region: filters.region,
+  })
+  if (error) throw error
+  return (data ?? []) as EspacioMarcaRow[]
+}
+
+export function EspacioMarcaClient() {
+  const { data: tiendas = [] } = useQuery({
+    queryKey: ["tiendas_espacio_marca"],
+    queryFn: fetchTiendas,
+    staleTime: 30 * 60 * 1000,
+  })
+
+  const [tiendaId, setTiendaId] = useState("all")
+  const [canal, setCanal] = useState("all")
+  const [region, setRegion] = useState("all")
+
+  const canales = useMemo(() => [...new Set(tiendas.map(t => t.canal))].sort(), [tiendas])
+  const regiones = useMemo(() => [...new Set(tiendas.map(t => t.region))].sort(), [tiendas])
+
+  const { data = [], isLoading } = useQuery({
+    queryKey: ["espacio_marca", tiendaId, canal, region],
+    queryFn: () => fetchEspacioMarca({
+      tiendaId: tiendaId === "all" ? null : tiendaId,
+      canal: canal === "all" ? null : canal,
+      region: region === "all" ? null : region,
+    }),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const totalSlots = data.reduce((s, r) => s + (r.slots_actuales ?? 0), 0)
 
   function handleExport() {
     const csv = Papa.unparse(
@@ -56,7 +122,7 @@ export function EspacioMarcaClient({
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* Header + filtros */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h3 className="text-sm font-semibold">
@@ -73,8 +139,46 @@ export function EspacioMarcaClient({
         </Button>
       </div>
 
+      <div className="flex flex-wrap gap-3">
+        <Select value={region} onValueChange={setRegion}>
+          <SelectTrigger className="w-48 h-9">
+            <SelectValue placeholder="Todas las regiones" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las regiones</SelectItem>
+            {regiones.map(r => (
+              <SelectItem key={r} value={r}>{r}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={canal} onValueChange={setCanal}>
+          <SelectTrigger className="w-40 h-9">
+            <SelectValue placeholder="Todos los canales" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los canales</SelectItem>
+            {canales.map(c => (
+              <SelectItem key={c} value={c}>{CANAL_LABEL[c] ?? c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={tiendaId} onValueChange={setTiendaId}>
+          <SelectTrigger className="w-56 h-9">
+            <SelectValue placeholder="Todas las tiendas" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las tiendas</SelectItem>
+            {tiendas.map(t => (
+              <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Table */}
-      <div ref={tableRef} className="rounded-xl border overflow-hidden">
+      <div className="rounded-xl border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -100,13 +204,21 @@ export function EspacioMarcaClient({
               </tr>
             </thead>
             <tbody className="divide-y">
-              {data.length === 0 ? (
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i}>
+                    <td colSpan={6} className="px-4 py-3">
+                      <div className="h-4 rounded bg-muted animate-pulse" />
+                    </td>
+                  </tr>
+                ))
+              ) : data.length === 0 ? (
                 <tr>
                   <td
                     colSpan={6}
                     className="text-center py-12 text-muted-foreground text-sm"
                   >
-                    Sin datos de espacio disponibles
+                    Sin datos de espacio disponibles con los filtros actuales
                   </td>
                 </tr>
               ) : (

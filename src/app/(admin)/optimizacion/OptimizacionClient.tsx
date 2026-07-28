@@ -46,7 +46,7 @@ import {
 import { createClient } from "@/lib/supabase/client"
 import { ChevronDown, ChevronUp, ChevronsUpDown, Download, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { CuadranteRow, EspacioMarcaRow } from "./page"
+import type { CuadranteRow } from "./page"
 import { MarcaDemandaChart } from "./MarcaDemandaChart"
 import { PedidoPorMarcaTable } from "./PedidoPorMarcaTable"
 import { EspacioMarcaClient } from "./espacio-marca/EspacioMarcaClient"
@@ -604,14 +604,10 @@ export function OptimizacionClient({
   cuadrante,
   tiendas,
   categorias,
-  espacioMarca,
-  espacioMarcaTotalSlots,
 }: {
   cuadrante: CuadranteRow[]
   tiendas:   { id: string; nombre: string }[]
   categorias: { id: string; nombre: string }[]
-  espacioMarca: EspacioMarcaRow[]
-  espacioMarcaTotalSlots: number
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -658,7 +654,7 @@ export function OptimizacionClient({
       </TabsContent>
 
       <TabsContent value="espacio-marca">
-        <EspacioMarcaClient data={espacioMarca} totalSlots={espacioMarcaTotalSlots} />
+        <EspacioMarcaClient />
       </TabsContent>
     </Tabs>
   )
