@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
 import { subMonths, startOfMonth, format } from "date-fns"
@@ -18,6 +19,7 @@ import {
 import { gmroiColor, sellthruColor, type DashboardFilters } from "@/lib/kpi/types"
 import { createClient } from "@/lib/supabase/client"
 import { AlertasPanel } from "@/components/charts/AlertasPanel"
+import { cn } from "@/lib/utils"
 
 function periodToRange(periodo: string) {
   const months = periodo === "3m" ? 3 : periodo === "6m" ? 6 : periodo === "24m" ? 24 : 12
@@ -34,10 +36,33 @@ function fmtCLP(v: number | null) {
   return `$${v.toFixed(0)}`
 }
 
+const MODO_STORAGE_KEY = "catman_modo"
+
 export function DashboardClient() {
   const params  = useSearchParams()
   const periodo = params.get("periodo") ?? "12m"
   const { desde, hasta } = periodToRange(periodo)
+
+  const [modo, setModo] = useState<"compras" | "category">("compras")
+  useEffect(() => {
+    const saved = window.localStorage.getItem(MODO_STORAGE_KEY)
+    if (saved === "compras" || saved === "category") setModo(saved)
+    const onStorage = () => {
+      const v = window.localStorage.getItem(MODO_STORAGE_KEY)
+      if (v === "compras" || v === "category") setModo(v)
+    }
+    const onModoChange = (e: Event) => {
+      const v = (e as CustomEvent<"compras" | "category">).detail
+      if (v === "compras" || v === "category") setModo(v)
+    }
+    window.addEventListener("storage", onStorage)
+    window.addEventListener("catman-modo-change", onModoChange)
+    return () => {
+      window.removeEventListener("storage", onStorage)
+      window.removeEventListener("catman-modo-change", onModoChange)
+    }
+  }, [])
+  const esCompras = modo === "compras"
 
   const filters: DashboardFilters = {
     desde,
@@ -93,6 +118,7 @@ export function DashboardClient() {
     queryKey: ["dashboard_heatmap", desde, hasta],
     queryFn:  () => fetchHeatmap(desde, hasta),
     staleTime: 10 * 60 * 1000,
+    enabled: !esCompras,
   })
 
   // Banner cuando no hay datos KPI (MV vacía)
@@ -119,52 +145,20 @@ export function DashboardClient() {
         </div>
       )}
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
+      {/* KPI Cards — el set completo es para Category Mgmt; Compras muestra solo lo accionable para reposición */}
+      <div className={cn(
+        "grid grid-cols-2 gap-3 sm:grid-cols-3",
+        esCompras ? "lg:grid-cols-5" : "lg:grid-cols-4 xl:grid-cols-8"
+      )}>
         <KpiCard
-          title="GMROI"
-          value={kpis?.avg_gmroi ?? null}
-          unit="x"
-          color={gmroiColor(kpis?.avg_gmroi ?? null)}
-          description="retorno promedio"
-          loading={loadingKpis}
-        />
-        <KpiCard
-          title="Sellthru"
-          value={kpis?.avg_sellthru_pct ?? null}
-          unit="%"
-          color={sellthruColor(kpis?.avg_sellthru_pct ?? null)}
-          loading={loadingKpis}
-        />
-        <KpiCard
-          title="Sell-to-Stock"
-          value={kpis?.avg_sell_to_stock != null
-            ? Number((kpis.avg_sell_to_stock * 100).toFixed(1))
-            : null}
-          unit="%"
-          loading={loadingKpis}
-        />
-        <KpiCard
-          title="Margen"
-          value={kpis?.avg_margen_pct ?? null}
+          title="Fill Rate (estimado)"
+          value={kpis?.avg_fill_rate ?? null}
           unit="%"
           color={
-            (kpis?.avg_margen_pct ?? null) != null
-              ? kpis!.avg_margen_pct! >= 35 ? "green" : kpis!.avg_margen_pct! >= 20 ? "yellow" : "red"
+            (kpis?.avg_fill_rate ?? null) != null
+              ? kpis!.avg_fill_rate! >= 90 ? "green" : kpis!.avg_fill_rate! >= 70 ? "yellow" : "red"
               : "gray"
           }
-          loading={loadingKpis}
-        />
-        <KpiCard
-          title="Rotación"
-          value={kpis?.avg_rotacion_anual ?? null}
-          unit="x/año"
-          color={
-            (kpis?.avg_rotacion_anual ?? null) != null
-              ? kpis!.avg_rotacion_anual! >= 4 ? "green" : kpis!.avg_rotacion_anual! >= 2 ? "yellow" : "red"
-              : "gray"
-          }
-          description="veces al año"
           loading={loadingKpis}
         />
         <KpiCard
@@ -180,14 +174,15 @@ export function DashboardClient() {
           loading={loadingKpis}
         />
         <KpiCard
-          title="Fill Rate (estimado)"
-          value={kpis?.avg_fill_rate ?? null}
-          unit="%"
+          title="Rotación"
+          value={kpis?.avg_rotacion_anual ?? null}
+          unit="x/año"
           color={
-            (kpis?.avg_fill_rate ?? null) != null
-              ? kpis!.avg_fill_rate! >= 90 ? "green" : kpis!.avg_fill_rate! >= 70 ? "yellow" : "red"
+            (kpis?.avg_rotacion_anual ?? null) != null
+              ? kpis!.avg_rotacion_anual! >= 4 ? "green" : kpis!.avg_rotacion_anual! >= 2 ? "yellow" : "red"
               : "gray"
           }
+          description="veces al año"
           loading={loadingKpis}
         />
         <KpiCard
@@ -203,6 +198,44 @@ export function DashboardClient() {
           trendInvert
           loading={loadingKpis}
         />
+        <KpiCard
+          title="GMROI"
+          value={kpis?.avg_gmroi ?? null}
+          unit="x"
+          color={gmroiColor(kpis?.avg_gmroi ?? null)}
+          description="retorno promedio"
+          loading={loadingKpis}
+        />
+        {!esCompras && (
+          <>
+            <KpiCard
+              title="Sellthru"
+              value={kpis?.avg_sellthru_pct ?? null}
+              unit="%"
+              color={sellthruColor(kpis?.avg_sellthru_pct ?? null)}
+              loading={loadingKpis}
+            />
+            <KpiCard
+              title="Sell-to-Stock"
+              value={kpis?.avg_sell_to_stock != null
+                ? Number((kpis.avg_sell_to_stock * 100).toFixed(1))
+                : null}
+              unit="%"
+              loading={loadingKpis}
+            />
+            <KpiCard
+              title="Margen"
+              value={kpis?.avg_margen_pct ?? null}
+              unit="%"
+              color={
+                (kpis?.avg_margen_pct ?? null) != null
+                  ? kpis!.avg_margen_pct! >= 35 ? "green" : kpis!.avg_margen_pct! >= 20 ? "yellow" : "red"
+                  : "gray"
+              }
+              loading={loadingKpis}
+            />
+          </>
+        )}
       </div>
 
       {/* Revenue summary */}
@@ -268,18 +301,61 @@ export function DashboardClient() {
         <TabsList className="mb-4">
           <TabsTrigger value="ejecutivo">📊 Ejecutivo</TabsTrigger>
           <TabsTrigger value="tendencia">Tendencia 24m</TabsTrigger>
-          <TabsTrigger value="top">Top 10 SKUs</TabsTrigger>
-          <TabsTrigger value="bottom">Bottom 10 SKUs</TabsTrigger>
-          <TabsTrigger value="heatmap">Heatmap Categoría × Tienda</TabsTrigger>
-          <TabsTrigger value="margen-aporte">Margen c/ aporte proveedores</TabsTrigger>
+          {!esCompras && <TabsTrigger value="top">Top 10 SKUs</TabsTrigger>}
+          {!esCompras && <TabsTrigger value="bottom">Bottom 10 SKUs</TabsTrigger>}
+          {!esCompras && <TabsTrigger value="heatmap">Heatmap Categoría × Tienda</TabsTrigger>}
+          {!esCompras && <TabsTrigger value="margen-aporte">Margen c/ aporte proveedores</TabsTrigger>}
         </TabsList>
 
         {/* ── Resumen Ejecutivo ──────────────────────────────────────── */}
         <TabsContent value="ejecutivo">
           <div className="space-y-4">
-            {/* Big 4 KPIs */}
+            {/* Big 4 KPIs — inventario/reposición en Compras, ventas/margen en Category Mgmt */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {[
+              {(esCompras ? [
+                {
+                  label: "Días de Stock",
+                  value: kpis?.avg_dias_stock != null ? `${kpis.avg_dias_stock.toFixed(0)} días` : "—",
+                  sub: kpis?.avg_dias_stock != null
+                    ? kpis.avg_dias_stock <= 70 ? "✅ Saludable" : kpis.avg_dias_stock <= 120 ? "⚠️ Alto" : "🔴 Muy alto"
+                    : "—",
+                  color: kpis?.avg_dias_stock != null
+                    ? kpis.avg_dias_stock <= 70 ? "text-emerald-600" : kpis.avg_dias_stock <= 120 ? "text-amber-600" : "text-rose-600"
+                    : "text-muted-foreground",
+                  bg: "bg-card",
+                },
+                {
+                  label: "Fill Rate (estimado)",
+                  value: kpis?.avg_fill_rate != null ? `${kpis.avg_fill_rate.toFixed(1)}%` : "—",
+                  sub: kpis?.avg_fill_rate != null
+                    ? kpis.avg_fill_rate >= 90 ? "✅ Buena disponibilidad" : kpis.avg_fill_rate >= 70 ? "⚠️ Riesgo de quiebre" : "🔴 Crítico"
+                    : "—",
+                  color: kpis?.avg_fill_rate != null
+                    ? kpis.avg_fill_rate >= 90 ? "text-emerald-600" : kpis.avg_fill_rate >= 70 ? "text-amber-600" : "text-rose-600"
+                    : "text-muted-foreground",
+                  bg: "bg-card",
+                },
+                {
+                  label: "Rotación",
+                  value: kpis?.avg_rotacion_anual != null ? `${kpis.avg_rotacion_anual.toFixed(1)}x/año` : "—",
+                  sub: kpis?.avg_rotacion_anual != null
+                    ? kpis.avg_rotacion_anual >= 4 ? "✅ Alta" : kpis.avg_rotacion_anual >= 2 ? "⚠️ Media" : "🔴 Baja"
+                    : "—",
+                  color: kpis?.avg_rotacion_anual != null
+                    ? kpis.avg_rotacion_anual >= 4 ? "text-emerald-600" : kpis.avg_rotacion_anual >= 2 ? "text-amber-600" : "text-rose-600"
+                    : "text-muted-foreground",
+                  bg: "bg-card",
+                },
+                {
+                  label: "% Obsoletos",
+                  value: kpis?.pct_obsoletos != null ? `${kpis.pct_obsoletos.toFixed(1)}%` : "—",
+                  sub: "MDI > 6 meses",
+                  color: kpis?.pct_obsoletos != null
+                    ? kpis.pct_obsoletos <= 10 ? "text-emerald-600" : kpis.pct_obsoletos <= 25 ? "text-amber-600" : "text-rose-600"
+                    : "text-muted-foreground",
+                  bg: "bg-card",
+                },
+              ] : [
                 {
                   label: "Ingreso Total",
                   value: kpis ? fmtCLP(kpis.total_ingreso) : "—",
@@ -316,7 +392,7 @@ export function DashboardClient() {
                     : "text-muted-foreground",
                   bg: "bg-card",
                 },
-              ].map(card => (
+              ]).map(card => (
                 <div key={card.label} className={`rounded-xl border p-4 ${card.bg}`}>
                   <p className="text-xs text-muted-foreground mb-1">{card.label}</p>
                   <p className={`text-2xl font-bold tabular-nums leading-none ${card.color}`}>{card.value}</p>
@@ -326,7 +402,7 @@ export function DashboardClient() {
             </div>
 
             {/* Health indicators + Top performers */}
-            <div className="grid lg:grid-cols-2 gap-4">
+            <div className={cn("grid gap-4", esCompras ? "" : "lg:grid-cols-2")}>
               {/* Indicadores */}
               <div className="rounded-xl border bg-card p-4 space-y-3">
                 <h3 className="text-sm font-semibold">Indicadores clave</h3>
@@ -387,38 +463,41 @@ export function DashboardClient() {
                 </div>
               </div>
 
-              {/* Top performers */}
-              <div className="rounded-xl border bg-card p-4 space-y-3">
-                <h3 className="text-sm font-semibold">Top 5 SKUs por GMROI</h3>
-                {loadingTopBottom ? (
-                  <div className="space-y-2">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="h-8 rounded bg-muted animate-pulse" />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {(topBottom?.top ?? []).slice(0, 5).map((sku, i) => (
-                      <div key={sku.sku_id} className="flex items-center gap-2 text-sm">
-                        <span className="w-4 text-xs text-muted-foreground font-mono">{i + 1}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="truncate font-medium text-xs leading-tight">{sku.nombre}</p>
-                          <p className="text-[10px] text-muted-foreground">{sku.marca_nombre}</p>
+              {/* Top performers — solo Category Mgmt, es ranking de rentabilidad no de compra */}
+              {!esCompras && (
+                <div className="rounded-xl border bg-card p-4 space-y-3">
+                  <h3 className="text-sm font-semibold">Top 5 SKUs por GMROI</h3>
+                  {loadingTopBottom ? (
+                    <div className="space-y-2">
+                      {[...Array(5)].map((_, i) => (
+                        <div key={i} className="h-8 rounded bg-muted animate-pulse" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {(topBottom?.top ?? []).slice(0, 5).map((sku, i) => (
+                        <div key={sku.sku_id} className="flex items-center gap-2 text-sm">
+                          <span className="w-4 text-xs text-muted-foreground font-mono">{i + 1}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="truncate font-medium text-xs leading-tight">{sku.nombre}</p>
+                            <p className="text-[10px] text-muted-foreground">{sku.marca_nombre}</p>
+                          </div>
+                          <span className="text-xs font-bold text-emerald-600 tabular-nums shrink-0">
+                            {sku.avg_gmroi != null ? `${sku.avg_gmroi.toFixed(2)}×` : "—"}
+                          </span>
                         </div>
-                        <span className="text-xs font-bold text-emerald-600 tabular-nums shrink-0">
-                          {sku.avg_gmroi != null ? `${sku.avg_gmroi.toFixed(2)}×` : "—"}
-                        </span>
-                      </div>
-                    ))}
-                    {(topBottom?.top ?? []).length === 0 && (
-                      <p className="text-xs text-muted-foreground italic">Sin datos</p>
-                    )}
-                  </div>
-                )}
-              </div>
+                      ))}
+                      {(topBottom?.top ?? []).length === 0 && (
+                        <p className="text-xs text-muted-foreground italic">Sin datos</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Critical SKUs */}
+            {/* Critical SKUs — solo Category Mgmt */}
+            {!esCompras && (
             <div className="rounded-xl border bg-card p-4 space-y-3">
               <h3 className="text-sm font-semibold text-rose-600">⚠️ SKUs críticos — Bottom 5 GMROI</h3>
               {loadingTopBottom ? (
@@ -443,6 +522,7 @@ export function DashboardClient() {
                 </div>
               )}
             </div>
+            )}
           </div>
         </TabsContent>
 
@@ -451,7 +531,12 @@ export function DashboardClient() {
             <h3 className="text-sm font-semibold mb-4">Evolución de KPIs (24 meses)</h3>
             {loadingTrend
               ? <div className="h-64 animate-pulse rounded-lg bg-muted" />
-              : <KpiTrendLine data={tendencia} activeMetrics={["avg_gmroi", "avg_sellthru", "avg_margen_pct"]} />
+              : <KpiTrendLine
+                  data={tendencia}
+                  activeMetrics={esCompras
+                    ? ["avg_gmroi", "avg_fill_rate", "avg_rotacion_anual"]
+                    : ["avg_gmroi", "avg_sellthru", "avg_margen_pct"]}
+                />
             }
           </div>
         </TabsContent>

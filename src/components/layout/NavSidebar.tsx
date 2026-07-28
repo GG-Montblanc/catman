@@ -28,6 +28,7 @@ export function NavSidebar({
   function handleModoChange(next: Modo) {
     setModo(next);
     window.localStorage.setItem(MODO_STORAGE_KEY, next);
+    window.dispatchEvent(new CustomEvent("catman-modo-change", { detail: next }));
   }
 
   return (
