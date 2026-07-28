@@ -70,7 +70,7 @@ BEGIN
   con_percentil AS (
     SELECT
       pm.*,
-      PERCENT_RANK() OVER (ORDER BY pm.total_ingreso) AS ingreso_percentil,
+      (PERCENT_RANK() OVER (ORDER BY pm.total_ingreso))::numeric AS ingreso_percentil,
       CASE
         WHEN (SELECT max_m FROM bounds) > (SELECT min_m FROM bounds)
           THEN 8 - 6 * (pm.margen_pct_bruto - (SELECT min_m FROM bounds)) / ((SELECT max_m FROM bounds) - (SELECT min_m FROM bounds))
