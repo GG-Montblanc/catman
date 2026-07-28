@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils"
 import { ShelfSVG } from "./ShelfSVG"
 import { SkuSwapDialog } from "./SkuSwapDialog"
 import { ScenarioPanel } from "./ScenarioPanel"
+import { EspacioPorSkuPanel } from "./EspacioPorSkuPanel"
 import { PublicarButton } from "./PublicarButton"
 import { VersionHistorySheet } from "./VersionHistorySheet"
 import { AsignarTiendasSheet } from "../AsignarTiendasSheet"
@@ -230,6 +231,9 @@ export function SimuladorClient({ planograma }: Props) {
           onClearAll={handleClearAll}
         />
       </div>
+
+      {/* ── Rentabilidad por espacio (SKU) ─────────────────────────────────── */}
+      <EspacioPorSkuPanel slots={planograma.slots} />
 
       {/* ── SKU Swap Dialog ─────────────────────────────────────────────────── */}
       <SkuSwapDialog
