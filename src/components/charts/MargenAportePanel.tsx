@@ -92,8 +92,9 @@ export function MargenAportePanel({ filters }: Props) {
         <p className="text-xs text-blue-900 dark:text-blue-300 leading-relaxed">
           <strong>Margen con aporte de proveedores (estimado):</strong> no existe en el sistema un registro real
           de fondeo comercial de proveedores (rebates, fondos de marketing, descuentos pie de factura). Se estima
-          de forma determinística — solo para marcas de terceros, con un % de aporte mayor cuanto menor es el
-          margen bruto de la marca (0% margen → 8% de aporte, 50%+ margen → 2% piso) — no es una cifra
+          de forma determinística — solo para marcas de terceros — comparando el margen bruto de cada marca
+          contra el resto del portafolio: la marca con el margen más bajo del período recibe 8% de aporte
+          estimado, la de margen más alto recibe 2%, y el resto se interpola linealmente. No es una cifra
           contractual real.
         </p>
       </div>
