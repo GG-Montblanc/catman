@@ -85,7 +85,10 @@ BEGIN
       margen_pct_bruto,
       ingreso_percentil,
       ROUND(aporte_total_pct, 2) AS aporte_total_pct,
-      ROUND(aporte_total_pct * (0.5 + 0.3 * ingreso_percentil), 2) AS rebate_volumen_pct
+      -- Marcas grandes (percentil de ingreso alto) destinan MÁS a fondo de
+      -- marketing y MENOS a rebate simple: fracción de rebate va de 80%
+      -- (marca más chica) a 50% (marca más grande).
+      ROUND(aporte_total_pct * (0.8 - 0.3 * ingreso_percentil), 2) AS rebate_volumen_pct
     FROM con_percentil
   )
   INSERT INTO public.contrato_proveedor_marca (
@@ -105,7 +108,7 @@ BEGIN
       ROUND(100 - 100 * (c.aporte_total_pct - 2) / 6.0, 0),
       ROUND(c.aporte_total_pct, 1) || '%',
       ROUND(c.ingreso_percentil * 100, 0),
-      ROUND((1 - (0.5 + 0.3 * c.ingreso_percentil)) * 100, 0)
+      ROUND((0.2 + 0.3 * c.ingreso_percentil) * 100, 0)
     ),
     now()
   FROM calculado c
