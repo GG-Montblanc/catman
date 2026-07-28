@@ -186,6 +186,8 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
   FROM con_aporte_final;
 $$;
 
+DROP FUNCTION IF EXISTS public.get_margen_aporte_por_marca(date, date, uuid, text, text);
+
 CREATE OR REPLACE FUNCTION public.get_margen_aporte_por_marca(
   p_desde   date DEFAULT (CURRENT_DATE - INTERVAL '12 months')::date,
   p_hasta   date DEFAULT CURRENT_DATE::date,
