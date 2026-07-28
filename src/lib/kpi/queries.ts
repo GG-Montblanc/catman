@@ -5,6 +5,9 @@ import type {
   TopBottomSkus,
   HeatmapCell,
   DashboardFilters,
+  MargenAporteResumen,
+  MargenAportePorMarca,
+  MargenAporteTendencia,
 } from "./types"
 
 function getClient() {
@@ -72,6 +75,58 @@ export async function fetchHeatmap(desde: string, hasta: string): Promise<Heatma
     return []
   }
   return (data as HeatmapCell[]) ?? []
+}
+
+export async function fetchMargenAporteResumen(f: DashboardFilters): Promise<MargenAporteResumen | null> {
+  const sb = getClient()
+  const { data, error } = await (sb.rpc as any)("get_margen_aporte_resumen", filtersToParams(f))
+  if (error) {
+    console.error("get_margen_aporte_resumen:", error.message)
+    return null
+  }
+  return data as MargenAporteResumen
+}
+
+export async function fetchMargenAportePorMarca(
+  desde: string,
+  hasta: string,
+  tienda?: string,
+  canal?: string,
+  region?: string,
+): Promise<MargenAportePorMarca[]> {
+  const sb = getClient()
+  const { data, error } = await (sb.rpc as any)("get_margen_aporte_por_marca", {
+    p_desde: desde,
+    p_hasta: hasta,
+    p_tienda: tienda || null,
+    p_canal: canal || null,
+    p_region: region || null,
+  })
+  if (error) {
+    console.error("get_margen_aporte_por_marca:", error.message)
+    return []
+  }
+  return (data as MargenAportePorMarca[]) ?? []
+}
+
+export async function fetchMargenAporteTendencia(
+  desde: string,
+  hasta: string,
+  tienda?: string,
+  marca?: string,
+): Promise<MargenAporteTendencia[]> {
+  const sb = getClient()
+  const { data, error } = await (sb.rpc as any)("get_margen_aporte_tendencia", {
+    p_desde: desde,
+    p_hasta: hasta,
+    p_tienda: tienda || null,
+    p_marca: marca || null,
+  })
+  if (error) {
+    console.error("get_margen_aporte_tendencia:", error.message)
+    return []
+  }
+  return (data as MargenAporteTendencia[]) ?? []
 }
 
 // Helpers para el FilterBar: carga opciones de filtros

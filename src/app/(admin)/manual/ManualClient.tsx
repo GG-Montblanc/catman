@@ -20,6 +20,7 @@ import {
   Eye,
   ShoppingCart,
   Smartphone,
+  HandCoins,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
@@ -212,6 +213,33 @@ const KPIS: KpiEntry[] = [
     donde_ver: [
       { label: "Dashboard → Margen", href: "/dashboard" },
       { label: "SKUs → Tabla", href: "/skus" },
+    ],
+  },
+  {
+    id: "margen-aporte",
+    nombre: "Margen con Aporte de Proveedores (estimado)",
+    sigla: "Margen + Fondeo Comercial",
+    icon: HandCoins,
+    iconColor: "text-blue-600",
+    formula: "Margen bruto + (Ingreso × % aporte estimado, solo marcas de terceros)",
+    descripcion:
+      "El margen bruto no refleja el fondeo comercial que las marcas de terceros aportan al retailer (rebates por volumen, fondos de marketing, descuentos pie de factura). El sistema no registra ningún dato real de proveedores, así que este aporte se estima de forma determinística — nunca al azar — a partir de señales que sí existen: solo aplica a marcas de terceros (no a marca propia), y el % de aporte es mayor cuanto más bajo es el margen bruto de la marca (0% margen → 8% de aporte estimado, 50%+ margen → 2% piso), replicando el patrón real de la industria donde el proveedor subsidia más las líneas de menor margen para mantener espacio de góndola.",
+    para_que_sirve:
+      "Ver la rentabilidad real de una marca de tercero considerando el fondeo que negocia, no solo el margen bruto de venta. Útil para decidir espacio de góndola y prioridad de surtido cuando el margen bruto solo no cuenta toda la historia.",
+    semaforos: [
+      { label: "Aporte alto",  color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-200",    range: "≥ 6% del ingreso" },
+      { label: "Aporte medio", color: "text-teal-700",    bg: "bg-teal-50",    border: "border-teal-200",    range: "3 – 5.9%" },
+      { label: "Aporte bajo",  color: "text-slate-700",   bg: "bg-slate-50",   border: "border-slate-200",   range: "< 3%" },
+      { label: "Marca propia", color: "text-muted-foreground", bg: "bg-muted", border: "border-border",     range: "sin aporte (0%)" },
+    ],
+    acciones: [
+      { estado: "Marca con margen bruto bajo y aporte alto", accion: "Confirmar con el proveedor real las condiciones de fondeo vigentes antes de decidir espacio — la cifra del sistema es una estimación, no un contrato." },
+      { estado: "Marca propia", accion: "No aplica aporte — evaluar solo por margen bruto y GMROI." },
+    ],
+    ejemplo:
+      "Marca de tercero con margen bruto 20% → aporte estimado 8% del ingreso → margen con aporte ≈ 28%",
+    donde_ver: [
+      { label: "Dashboard → Margen c/ aporte proveedores", href: "/dashboard" },
     ],
   },
   {

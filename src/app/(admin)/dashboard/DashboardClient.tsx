@@ -8,6 +8,7 @@ import { KpiCard } from "@/components/charts/KpiCard"
 import { KpiTrendLine } from "@/components/charts/KpiTrendLine"
 import { TopBottomBars } from "@/components/charts/TopBottomBars"
 import { CategoriaTiendaHeatmap } from "@/components/charts/CategoriaTiendaHeatmap"
+import { MargenAportePanel } from "@/components/charts/MargenAportePanel"
 import {
   fetchGlobalKpis,
   fetchTendencia,
@@ -258,6 +259,7 @@ export function DashboardClient() {
           <TabsTrigger value="top">Top 10 SKUs</TabsTrigger>
           <TabsTrigger value="bottom">Bottom 10 SKUs</TabsTrigger>
           <TabsTrigger value="heatmap">Heatmap Categoría × Tienda</TabsTrigger>
+          <TabsTrigger value="margen-aporte">Margen c/ aporte proveedores</TabsTrigger>
         </TabsList>
 
         {/* ── Resumen Ejecutivo ──────────────────────────────────────── */}
@@ -479,6 +481,10 @@ export function DashboardClient() {
               : <CategoriaTiendaHeatmap data={heatmapData} />
             }
           </div>
+        </TabsContent>
+
+        <TabsContent value="margen-aporte">
+          <MargenAportePanel filters={filters} />
         </TabsContent>
       </Tabs>
     </div>

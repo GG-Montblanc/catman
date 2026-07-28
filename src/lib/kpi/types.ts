@@ -68,6 +68,38 @@ export type SkuConKpis = {
   total_margen: number | null
 }
 
+export type MargenAporteResumen = {
+  total_ingreso: number | null
+  total_margen_bruto: number | null
+  margen_pct_bruto: number | null
+  total_aporte: number | null
+  total_margen_con_aporte: number | null
+  margen_pct_con_aporte: number | null
+}
+
+export type MargenAportePorMarca = {
+  marca_id: string
+  marca_nombre: string
+  propia: boolean
+  total_ingreso: number
+  total_margen_bruto: number
+  margen_pct_bruto: number | null
+  aporte_pct: number
+  total_aporte: number
+  total_margen_con_aporte: number
+  margen_pct_con_aporte: number | null
+}
+
+export type MargenAporteTendencia = {
+  anio_mes: string
+  total_ingreso: number | null
+  total_margen_bruto: number | null
+  margen_pct_bruto: number | null
+  total_aporte: number | null
+  total_margen_con_aporte: number | null
+  margen_pct_con_aporte: number | null
+}
+
 export type DashboardFilters = {
   desde: string
   hasta: string
