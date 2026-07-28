@@ -167,7 +167,7 @@ export function DashboardClient() {
           loading={loadingKpis}
         />
         <KpiCard
-          title="Fill Rate"
+          title="Fill Rate (estimado)"
           value={kpis?.avg_fill_rate ?? null}
           unit="%"
           color={
@@ -319,7 +319,7 @@ export function DashboardClient() {
                 <div className="space-y-2">
                   {[
                     {
-                      label: "Fill Rate",
+                      label: "Fill Rate (estimado)",
                       value: kpis?.avg_fill_rate != null ? `${kpis.avg_fill_rate.toFixed(1)}%` : "—",
                       ok: kpis?.avg_fill_rate != null && kpis.avg_fill_rate >= 85,
                       warn: kpis?.avg_fill_rate != null && kpis.avg_fill_rate >= 70,

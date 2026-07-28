@@ -598,7 +598,7 @@ function SkuDetailPanel({ sku }: { sku: SkuConKpis }) {
             { label: "S2S",        value: sku.avg_s2s != null ? (sku.avg_s2s * 100).toFixed(1) : null, unit: "%", color: "gray" as const },
             { label: "Margen",     value: sku.avg_margen_pct?.toFixed(1), unit: "%", color: "gray" as const },
             { label: "Días Stock", value: sku.avg_dias_stock?.toFixed(0), unit: " días", color: "gray" as const },
-            { label: "Fill Rate",  value: sku.avg_fill_rate?.toFixed(1), unit: "%", color: "gray" as const },
+            { label: "Fill Rate (est.)",  value: sku.avg_fill_rate?.toFixed(1), unit: "%", color: "gray" as const },
             { label: "MDI",        value: sku.avg_mdi_meses?.toFixed(1), unit: " meses", color: "gray" as const },
             { label: "Precio lista", value: sku.precio_lista != null
               ? new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(sku.precio_lista)

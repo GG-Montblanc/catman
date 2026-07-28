@@ -134,13 +134,13 @@ const KPIS: KpiEntry[] = [
   },
   {
     id: "fill-rate",
-    nombre: "Fill Rate",
+    nombre: "Fill Rate (estimado)",
     sigla: "Tasa de Disponibilidad",
     icon: ShieldCheck,
     iconColor: "text-teal-600",
-    formula: "Días con stock / Días totales del período × 100",
+    formula: "Estimado a partir del MDI (no medido directo — ver nota abajo)",
     descripcion:
-      "Porcentaje de días en que el SKU tenía stock disponible para la venta. Detecta quiebres de stock que el sellthru no captura.",
+      "Porcentaje de días en que el SKU tenía stock disponible para la venta. Detecta quiebres de stock que el sellthru no captura. Nota: el dataset actual no registra quiebres de stock reales (el inventario de fin de mes nunca llega a 0), así que este valor es una estimación derivada del MDI — mientras más ajustada la cobertura, menor el fill rate estimado.",
     para_que_sirve:
       "Identificar SKUs que pierden ventas por falta de stock. Un fill rate bajo con buen sellthru indica que se vende todo lo que llega pero falta reposición.",
     semaforos: [
