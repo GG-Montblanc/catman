@@ -12,6 +12,15 @@
 -- filtradas, su ingreso (de TODAS las tiendas, no solo esa) se sumaba
 -- una vez por cada aparicion — inflando el total. Se agrega el filtro
 -- de tienda_id que faltaba.
+--
+-- Nota: el cambio de firma (3 args -> 5 args) hace que CREATE OR REPLACE
+-- cree un OVERLOAD nuevo en vez de reemplazar la funcion vieja de 3
+-- args (Postgres identifica funciones por nombre + tipos de argumentos).
+-- Eso dejaba dos "get_espacio_marca" coexistiendo y el GRANT sin lista
+-- de argumentos fallaba por ambiguo. Se elimina explicitamente la
+-- version vieja de 3 args antes de crear la nueva.
+
+DROP FUNCTION IF EXISTS public.get_espacio_marca(UUID, UUID, UUID);
 
 CREATE OR REPLACE FUNCTION public.get_espacio_marca(
   p_planograma_id UUID DEFAULT NULL,
@@ -90,4 +99,4 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
   JOIN public.marcas mar ON mar.id = pm.marca_id
   ORDER BY pm.total_ingreso DESC NULLS LAST;
 $$;
-GRANT EXECUTE ON FUNCTION public.get_espacio_marca TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_espacio_marca(UUID, UUID, UUID, TEXT, TEXT) TO authenticated;
