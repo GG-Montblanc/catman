@@ -28,6 +28,8 @@ export type DemandaCompraData = {
   recomendacion: PurchaseRecommendation
   mesCompraLabel: string | null
   clasificacionDemanda?: DemandClassification | null
+  ultimoMesConVentas?: string | null
+  mesesSinVentas?: number
 }
 
 const fmtCLP0 = (n: number) =>
@@ -62,6 +64,12 @@ export function DemandaCompraViz({ data, title }: { data: DemandaCompraData; tit
           )}
         </div>
       </div>
+
+      {(data.mesesSinVentas ?? 0) > 1 && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-600">
+          ⓘ Sin ventas registradas hace {data.mesesSinVentas} meses (último dato: {data.ultimoMesConVentas}). El pronóstico usa ese historial pero las fechas de compra se muestran en meses reales desde hoy.
+        </div>
+      )}
 
       {clas && (
         <div className={cn("rounded-lg border p-3 flex items-start gap-2.5", DEMAND_PATTERN_COLOR[clas.patron])}>

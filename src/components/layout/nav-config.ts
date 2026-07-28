@@ -11,11 +11,17 @@ import {
   BookOpen,
 } from "lucide-react";
 
+export type Modo = "compras" | "category";
+
 export type NavItem = {
   label: string;
   href: string;
   icon: LucideIcon;
   hint?: string;
+  /** En qué modo(s) del toggle superior aparece este item. Default: ambos. */
+  modos?: Modo[];
+  /** Href alternativo cuando el modo activo es "compras" (ej. deep-link a otra pestaña). */
+  hrefCompras?: string;
 };
 
 export type NavGroup = {
@@ -23,29 +29,38 @@ export type NavGroup = {
   items: NavItem[];
 };
 
+const AMBOS: Modo[] = ["compras", "category"];
+
 export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Análisis",
     items: [
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "SKUs", href: "/skus", icon: Package, hint: "~8.000 SKUs" },
-      { label: "Categorías", href: "/categorias", icon: Layers },
-      { label: "Tiendas", href: "/tiendas", icon: Store },
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, modos: AMBOS },
+      { label: "SKUs", href: "/skus", icon: Package, hint: "~8.000 SKUs", modos: ["category"] },
+      { label: "Categorías", href: "/categorias", icon: Layers, modos: ["category"] },
+      { label: "Tiendas", href: "/tiendas", icon: Store, modos: ["category"] },
     ],
   },
   {
     label: "Acción",
     items: [
-      { label: "Planogramas", href: "/planogramas", icon: LayoutGrid },
-      { label: "Optimización", href: "/optimizacion", icon: Sparkles, hint: "compras, espacio y más" },
-      { label: "Tendencias", href: "/tendencias", icon: TrendingUp },
-      { label: "Alertas", href: "/alertas", icon: Bell },
+      { label: "Planogramas", href: "/planogramas", icon: LayoutGrid, modos: AMBOS },
+      {
+        label: "Optimización",
+        href: "/optimizacion?tab=cuadrantes",
+        hrefCompras: "/optimizacion?tab=cuando-comprar",
+        icon: Sparkles,
+        hint: "compras, espacio y más",
+        modos: AMBOS,
+      },
+      { label: "Tendencias", href: "/tendencias", icon: TrendingUp, modos: ["category"] },
+      { label: "Alertas", href: "/alertas", icon: Bell, modos: AMBOS },
     ],
   },
   {
     label: "Ayuda",
     items: [
-      { label: "Manual & Indicadores", href: "/manual", icon: BookOpen },
+      { label: "Manual & Indicadores", href: "/manual", icon: BookOpen, modos: AMBOS },
     ],
   },
 ];

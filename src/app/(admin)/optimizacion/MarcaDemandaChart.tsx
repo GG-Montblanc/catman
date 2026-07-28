@@ -96,7 +96,6 @@ async function fetchMarcaDemanda(marcaId: string): Promise<DemandaCompraData | n
   })
 
   const lastMonth = months[months.length - 1]
-  const lastDate  = parseISO(lastMonth + "-01")
 
   const histPoints = months.map((m, i) => ({
     mes:              format(parseISO(m + "-01"), "MMM yy", { locale: es }),
@@ -112,8 +111,15 @@ async function fetchMarcaDemanda(marcaId: string): Promise<DemandaCompraData | n
     stock_proyectado: Math.round(stockActual),
   }
 
+  // Las etiquetas del pronóstico se anclan al mes calendario real (hoy en
+  // adelante), no al último mes con ventas: si una marca no vende hace
+  // varios meses, "proyectar 6 meses desde su última venta" cae en el
+  // pasado y "comprar en [mes ya pasado]" no tiene sentido para el usuario.
+  const hoy = new Date()
+  const anchorDate = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
+
   const forecastPoints = hwU.forecast.map((fu, i) => ({
-    mes:              format(addMonths(lastDate, i + 1), "MMM yy", { locale: es }),
+    mes:              format(addMonths(anchorDate, i + 1), "MMM yy", { locale: es }),
     unidades:         null as number | null,
     forecast_u:       Math.round(fu),
     stock_proyectado: Math.round(stockProyectado[i]),
@@ -134,6 +140,11 @@ async function fetchMarcaDemanda(marcaId: string): Promise<DemandaCompraData | n
     ? forecastPoints[recomendacion.mesCompraIdx].mes
     : null
 
+  const mesesSinVentas = Math.round(
+    (anchorDate.getFullYear() - parseISO(lastMonth + "-01").getFullYear()) * 12 +
+    (anchorDate.getMonth() - parseISO(lastMonth + "-01").getMonth())
+  )
+
   return {
     points: [...histPoints, bridgePoint, ...forecastPoints],
     mape: hwU.mape,
@@ -142,6 +153,8 @@ async function fetchMarcaDemanda(marcaId: string): Promise<DemandaCompraData | n
     stockActual,
     recomendacion,
     mesCompraLabel,
+    ultimoMesConVentas: histPoints[histPoints.length - 1]?.mes ?? null,
+    mesesSinVentas: mesesSinVentas > 1 ? mesesSinVentas : 0,
   }
 }
 
