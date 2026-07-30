@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from "react"
 import {
   BarChart2, Eye, TrendingUp, DollarSign,
-  ExternalLink, Layers, ShoppingCart,
+  ExternalLink, Layers, ShoppingCart, Printer,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -132,6 +132,12 @@ export function SimuladorClient({ planograma }: Props) {
             <Link href={`/planogramas/${planograma.id}/editor`}>
               <Layers className="h-3.5 w-3.5" />
               Editor
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild className="gap-1.5 text-xs">
+            <Link href={`/planogramas/${planograma.id}/imprimir`}>
+              <Printer className="h-3.5 w-3.5" />
+              Imprimir / PDF
             </Link>
           </Button>
           <AsignarTiendasSheet

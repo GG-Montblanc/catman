@@ -131,14 +131,22 @@ export default async function EditorPage({ params }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <a href="/planogramas" className="hover:text-foreground">Planogramas</a>
-        <span>/</span>
-        <a href={`/planogramas/${id}/simulador`} className="hover:text-foreground truncate max-w-[200px]">
-          {planograma.nombre}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <a href="/planogramas" className="hover:text-foreground">Planogramas</a>
+          <span>/</span>
+          <a href={`/planogramas/${id}/simulador`} className="hover:text-foreground truncate max-w-[200px]">
+            {planograma.nombre}
+          </a>
+          <span>/</span>
+          <span className="text-foreground font-medium">Editor</span>
+        </div>
+        <a
+          href={`/planogramas/${id}/imprimir`}
+          className="text-xs text-muted-foreground hover:text-foreground whitespace-nowrap"
+        >
+          Imprimir / PDF →
         </a>
-        <span>/</span>
-        <span className="text-foreground font-medium">Editor</span>
       </div>
 
       <PlanogramEditor planograma={planograma} skusPool={skusPool} />
