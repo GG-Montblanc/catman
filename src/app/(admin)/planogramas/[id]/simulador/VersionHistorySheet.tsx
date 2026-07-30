@@ -1,7 +1,9 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { History, Clock, RefreshCw, ChevronRight, ArrowLeftRight } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { History, Clock, RefreshCw, ChevronRight, ArrowLeftRight, Undo2 } from "lucide-react"
+import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,6 +15,8 @@ import {
 } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { guardarCambios } from "./actions"
+import type { PlanogramSlot } from "@/lib/planogram/types"
 
 type SwapDetail = {
   bandeja:  number
@@ -48,6 +52,8 @@ type Version = {
 
 type Props = {
   planogramaId: string
+  currentSlots?: PlanogramSlot[]
+  puedeEditar?: boolean
 }
 
 function timeAgo(isoDate: string): string {
@@ -69,28 +75,71 @@ function fmtDate(isoDate: string): string {
   })
 }
 
-function parseSnapshot(v: Version): { swaps: SwapDetail[]; slotCount: number } {
+function parseSnapshot(v: Version): { swaps: SwapDetail[]; slotCount: number; slots: SlotSnapshot[] } {
   const snap = v.snapshot
-  if (!snap) return { swaps: [], slotCount: 0 }
+  if (!snap) return { swaps: [], slotCount: 0, slots: [] }
 
   // v2 format: { v: 2, slots: [...], swaps: [...], slot_count: N }
   if (!Array.isArray(snap) && typeof snap === "object" && "v" in snap && snap.v === 2) {
     return {
       swaps:      snap.swaps      ?? [],
       slotCount:  snap.slot_count ?? snap.slots?.length ?? 0,
+      slots:      snap.slots      ?? [],
     }
   }
 
   // v1 format: array of slot snapshots (no swap details)
   const slots = Array.isArray(snap) ? snap : (snap as VersionSnapshot).slots ?? []
-  return { swaps: [], slotCount: slots.length }
+  return { swaps: [], slotCount: slots.length, slots }
 }
 
-export function VersionHistorySheet({ planogramaId }: Props) {
-  const [open, setOpen]         = useState(false)
-  const [versions, setVersions] = useState<Version[]>([])
-  const [loading, setLoading]   = useState(false)
-  const [expanded, setExpanded] = useState<string | null>(null)
+export function VersionHistorySheet({ planogramaId, currentSlots, puedeEditar = true }: Props) {
+  const router = useRouter()
+  const [open, setOpen]             = useState(false)
+  const [versions, setVersions]     = useState<Version[]>([])
+  const [loading, setLoading]       = useState(false)
+  const [expanded, setExpanded]     = useState<string | null>(null)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [restoring, setRestoring]   = useState<string | null>(null)
+
+  async function handleRestore(v: Version) {
+    if (!currentSlots) return
+    const { slots: targetSlots } = parseSnapshot(v)
+    if (targetSlots.length === 0) {
+      toast.error("Esta versión no tiene un snapshot completo de slots para restaurar")
+      return
+    }
+
+    const currentByKey = new Map(
+      currentSlots.map(s => [`${s.bandeja}-${s.posicion}`, s])
+    )
+    const swaps: { slot_id: string; nuevo_sku_id: string }[] = []
+    for (const target of targetSlots) {
+      const key = `${target.bandeja}-${target.posicion}`
+      const current = currentByKey.get(key)
+      if (current && current.sku.id !== target.sku_id) {
+        swaps.push({ slot_id: current.id, nuevo_sku_id: target.sku_id })
+      }
+    }
+
+    if (swaps.length === 0) {
+      toast.info("El planograma actual ya coincide con esta versión")
+      setConfirmingId(null)
+      return
+    }
+
+    setRestoring(v.id)
+    const res = await guardarCambios(planogramaId, swaps, `Restaurado desde v${v.version}`)
+    setRestoring(null)
+    setConfirmingId(null)
+    if (res.ok) {
+      toast.success(`Restaurado a v${v.version} — guardado como v${res.version}`)
+      setOpen(false)
+      router.refresh()
+    } else {
+      toast.error(`Error al restaurar: ${res.error}`)
+    }
+  }
 
   const fetchVersions = useCallback(async () => {
     setLoading(true)
@@ -242,6 +291,41 @@ export function VersionHistorySheet({ planogramaId }: Props) {
                           </div>
                         )}
                       </div>
+
+                      {/* Restaurar esta versión */}
+                      {!isLatest && puedeEditar && currentSlots && (
+                        <div className="mt-2.5">
+                          {confirmingId === v.id ? (
+                            <div className="flex items-center gap-2 rounded-md bg-amber-50 px-2 py-1.5 text-[11px]">
+                              <span className="text-amber-800">¿Restaurar a v{v.version}?</span>
+                              <Button
+                                size="sm" variant="destructive"
+                                className="h-6 px-2 text-[11px]"
+                                disabled={restoring === v.id}
+                                onClick={() => handleRestore(v)}
+                              >
+                                {restoring === v.id ? "Restaurando…" : "Sí, restaurar"}
+                              </Button>
+                              <Button
+                                size="sm" variant="ghost"
+                                className="h-6 px-2 text-[11px]"
+                                onClick={() => setConfirmingId(null)}
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm" variant="outline"
+                              className="h-6 gap-1 px-2 text-[11px]"
+                              onClick={() => setConfirmingId(v.id)}
+                            >
+                              <Undo2 className="h-3 w-3" />
+                              Restaurar esta versión
+                            </Button>
+                          )}
+                        </div>
+                      )}
 
                       {/* Expanded: swap details */}
                       {isExpanded && (

@@ -157,7 +157,11 @@ export function SimuladorClient({ planograma, puedeEditar = true }: Props) {
             planogramaNombre={planograma.nombre}
             readOnly={!puedeEditar}
           />
-          <VersionHistorySheet planogramaId={planograma.id} />
+          <VersionHistorySheet
+            planogramaId={planograma.id}
+            currentSlots={planograma.slots}
+            puedeEditar={puedeEditar}
+          />
           <PublicarButton planogramaId={planograma.id} disabled={!puedeEditar} />
         </div>
       </div>
