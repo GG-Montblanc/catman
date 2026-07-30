@@ -7,6 +7,7 @@ import { LogOut, ShoppingCart, LayoutGrid as CategoryIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Brand } from "./Brand";
 import { NAV_GROUPS, type Modo } from "./nav-config";
+import { NotificationBell } from "./NotificationBell";
 
 const MODO_STORAGE_KEY = "catman_modo";
 
@@ -33,8 +34,9 @@ export function NavSidebar({
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-      <div className="border-b border-sidebar-border px-5 py-5">
+      <div className="flex items-center justify-between border-b border-sidebar-border px-5 py-5">
         <Brand variant="dark" />
+        <NotificationBell />
       </div>
 
       {/* Toggle Compras / Category Management */}
