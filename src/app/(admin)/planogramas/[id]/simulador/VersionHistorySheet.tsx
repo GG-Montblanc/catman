@@ -48,6 +48,8 @@ type Version = {
   comentario:    string | null
   creado_at:     string
   snapshot:      VersionSnapshot | SlotSnapshot[] | null  // v1 is array, v2 is object
+  creado_por:    string | null
+  usuarios:      { nombre: string } | null  // embed via FK creado_por -> usuarios.id
 }
 
 type Props = {
@@ -146,7 +148,7 @@ export function VersionHistorySheet({ planogramaId, currentSlots, puedeEditar = 
     const sb = createClient()
     const { data } = await sb
       .from("planograma_versiones")
-      .select("id, planograma_id, version, comentario, creado_at, snapshot")
+      .select("id, planograma_id, version, comentario, creado_at, snapshot, creado_por, usuarios(nombre)")
       .eq("planograma_id", planogramaId)
       .order("version", { ascending: false })
       .limit(20)
@@ -252,6 +254,7 @@ export function VersionHistorySheet({ planogramaId, currentSlots, puedeEditar = 
 
                           <p className="text-[11px] text-muted-foreground mt-0.5">
                             {fmtDate(v.creado_at)} · {timeAgo(v.creado_at)}
+                            {v.usuarios?.nombre && <> · por <span className="font-medium text-foreground/70">{v.usuarios.nombre}</span></>}
                           </p>
 
                           {v.comentario && (
