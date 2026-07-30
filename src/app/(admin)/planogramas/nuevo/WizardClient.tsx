@@ -208,7 +208,23 @@ export function WizardClient({ tiendas, categorias }: Props) {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [savedId, setSavedId] = useState<string | null>(null)
 
-  const eyeLevel = [2, 3]
+  const [eyeLevel, setEyeLevel] = useState<number[]>([2, 3])
+
+  // Si el usuario reduce el nº de bandejas, quita del eye level las que ya no existen
+  useEffect(() => {
+    setEyeLevel(prev => {
+      const filtrado = prev.filter(b => b <= nBandejas)
+      return filtrado.length > 0 ? filtrado : [Math.min(2, nBandejas)]
+    })
+  }, [nBandejas])
+
+  function toggleEyeLevel(bandeja: number) {
+    setEyeLevel(prev =>
+      prev.includes(bandeja)
+        ? prev.filter(b => b !== bandeja)
+        : [...prev, bandeja].sort((a, b) => a - b)
+    )
+  }
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const tiendaObj = tiendas.find((t) => t.id === tiendaId)
@@ -411,6 +427,34 @@ export function WizardClient({ tiendas, categorias }: Props) {
                 <Input id="n_posiciones" type="number" min={10} max={30} value={nPosiciones}
                   onChange={(e) => setNPosiciones(Math.min(30, Math.max(10, Number(e.target.value))))} />
                 <p className="text-xs text-muted-foreground">Entre 10 y 30</p>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Eye level */}
+            <div className="space-y-2">
+              <Label>Bandejas "eye level" (mayor prioridad para productos top)</Label>
+              <p className="text-xs text-muted-foreground">
+                Los productos de mayor {optimizarPor === "gmroi" ? "GMROI" : optimizarPor === "margen" ? "margen" : "unidades vendidas"} se
+                ubican primero en estas bandejas — a la altura de los ojos, la de mayor visibilidad.
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {Array.from({ length: nBandejas }, (_, i) => i + 1).map(b => (
+                  <button
+                    key={b}
+                    type="button"
+                    onClick={() => toggleEyeLevel(b)}
+                    className="px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors"
+                    style={
+                      eyeLevel.includes(b)
+                        ? { background: "#fde68a", color: "#92400e", borderColor: "#f59e0b" }
+                        : { background: "transparent", borderColor: "var(--border)" }
+                    }
+                  >
+                    {eyeLevel.includes(b) && "⭐ "}Bandeja {b}
+                  </button>
+                ))}
               </div>
             </div>
 
