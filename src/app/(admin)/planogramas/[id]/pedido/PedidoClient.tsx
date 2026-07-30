@@ -1,10 +1,40 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import Link from "next/link"
-import { ArrowLeft, Download, Package, ShoppingCart, TrendingDown } from "lucide-react"
+import { ArrowLeft, Download, Package, ShoppingCart, TrendingDown, ClipboardList, Truck, CheckCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
+import { toast } from "sonner"
+
+type PedidoGenerado = {
+  id: string
+  items: unknown
+  total_unidades: number
+  total_costo: number
+  estado: "pendiente" | "enviado" | "recibido"
+  generado_por_nombre: string | null
+  generado_en: string
+  enviado_en: string | null
+  recibido_en: string | null
+}
+
+const ESTADO_LABEL: Record<PedidoGenerado["estado"], string> = {
+  pendiente: "Pendiente",
+  enviado: "Enviado",
+  recibido: "Recibido",
+}
+const ESTADO_BADGE: Record<PedidoGenerado["estado"], string> = {
+  pendiente: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+  enviado: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+  recibido: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+}
+
+function fmtFecha(iso: string) {
+  return new Date(iso).toLocaleDateString("es-CL", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+}
 
 type PedidoItem = {
   sku_id: string
@@ -56,6 +86,47 @@ export function PedidoClient({
   const totalUnidades = selectedItems.reduce((s, i) => s + i.unidades_pedir, 0)
   const totalCosto    = selectedItems.reduce((s, i) => s + i.costo_estimado, 0)
 
+  const sb = createClient()
+  const [pedidos, setPedidos] = useState<PedidoGenerado[]>([])
+  const [generando, setGenerando] = useState(false)
+  const [actualizando, setActualizando] = useState<string | null>(null)
+
+  const cargarPedidos = useCallback(async () => {
+    const { data } = await (sb.rpc as any)("get_pedidos_planograma", { p_planograma_id: planogramaId })
+    setPedidos((data ?? []) as PedidoGenerado[])
+  }, [sb, planogramaId])
+
+  useEffect(() => { cargarPedidos() }, [cargarPedidos])
+
+  async function generarPedido() {
+    if (selectedItems.length === 0) {
+      toast.error("Selecciona al menos un SKU")
+      return
+    }
+    setGenerando(true)
+    const { error } = await (sb.rpc as any)("crear_pedido", {
+      p_planograma_id: planogramaId,
+      p_items: JSON.stringify(selectedItems.map(i => ({
+        sku_id: i.sku_id, sku_nombre: i.sku_nombre,
+        unidades_pedir: i.unidades_pedir, costo_estimado: i.costo_estimado,
+      }))),
+      p_total_unidades: totalUnidades,
+      p_total_costo: totalCosto,
+    })
+    setGenerando(false)
+    if (error) toast.error(`Error al generar pedido: ${error.message}`)
+    else { toast.success("Pedido generado"); cargarPedidos() }
+  }
+
+  async function avanzarEstado(pedido: PedidoGenerado) {
+    const siguiente = pedido.estado === "pendiente" ? "enviado" : "recibido"
+    setActualizando(pedido.id)
+    const { error } = await (sb.rpc as any)("actualizar_estado_pedido", { p_pedido_id: pedido.id, p_estado: siguiente })
+    setActualizando(null)
+    if (error) toast.error(`Error: ${error.message}`)
+    else cargarPedidos()
+  }
+
   function exportCSV() {
     const rows = [
       ["SKU", "Marca", "Stock actual", "Venta/mes", "A pedir", "Costo estimado"],
@@ -100,11 +171,56 @@ export function PedidoClient({
             Cobertura target: 10 semanas · basado en ventas últimos 2 meses
           </p>
         </div>
-        <Button onClick={exportCSV} variant="outline" className="gap-2">
-          <Download className="h-4 w-4" />
-          Exportar CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={exportCSV} variant="outline" className="gap-2">
+            <Download className="h-4 w-4" />
+            Exportar CSV
+          </Button>
+          <Button onClick={generarPedido} disabled={generando} className="gap-2">
+            <ClipboardList className="h-4 w-4" />
+            {generando ? "Generando…" : "Generar pedido"}
+          </Button>
+        </div>
       </div>
+
+      {/* Pedidos generados previamente */}
+      {pedidos.length > 0 && (
+        <div className="rounded-xl border overflow-hidden">
+          <div className="bg-muted/40 px-4 py-2.5 border-b">
+            <h3 className="text-sm font-semibold">Pedidos generados</h3>
+          </div>
+          <div className="divide-y">
+            {pedidos.map(p => (
+              <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Badge className={cn("text-xs", ESTADO_BADGE[p.estado])}>{ESTADO_LABEL[p.estado]}</Badge>
+                    <span className="font-medium tabular-nums">{fmtN(p.total_unidades)} uds</span>
+                    <span className="text-muted-foreground">·</span>
+                    <span className="font-medium tabular-nums">{fmtCLP(p.total_costo)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {p.generado_por_nombre ?? "—"} · generado {fmtFecha(p.generado_en)}
+                    {p.enviado_en && <> · enviado {fmtFecha(p.enviado_en)}</>}
+                    {p.recibido_en && <> · recibido {fmtFecha(p.recibido_en)}</>}
+                  </p>
+                </div>
+                {p.estado !== "recibido" && (
+                  <Button
+                    size="sm" variant="outline"
+                    disabled={actualizando === p.id}
+                    onClick={() => avanzarEstado(p)}
+                    className="gap-1.5 shrink-0"
+                  >
+                    {p.estado === "pendiente" ? <Truck className="h-3.5 w-3.5" /> : <CheckCheck className="h-3.5 w-3.5" />}
+                    Marcar {p.estado === "pendiente" ? "enviado" : "recibido"}
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3">
