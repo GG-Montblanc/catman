@@ -54,6 +54,8 @@ export async function crearPlanograma(
       p_n_bandejas:   config.n_bandejas,
       p_n_posiciones: config.n_posiciones,
       p_slots:        JSON.stringify(slots),
+      p_ancho_cm:        config.ancho_cm ?? null,
+      p_alto_bandeja_cm: config.alto_bandeja_cm ?? null,
     })
 
     if (error) {

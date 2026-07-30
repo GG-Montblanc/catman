@@ -11,6 +11,7 @@ import { ShelfSVG } from "./ShelfSVG"
 import { SkuSwapDialog } from "./SkuSwapDialog"
 import { ScenarioPanel } from "./ScenarioPanel"
 import { EspacioPorSkuPanel } from "./EspacioPorSkuPanel"
+import { EspacioFisicoPanel } from "./EspacioFisicoPanel"
 import { PublicarButton } from "./PublicarButton"
 import { VersionHistorySheet } from "./VersionHistorySheet"
 import { AsignarTiendasSheet } from "../AsignarTiendasSheet"
@@ -254,6 +255,9 @@ export function SimuladorClient({ planograma, puedeEditar = true }: Props) {
           onClearAll={handleClearAll}
         />
       </div>
+
+      {/* ── Espacio físico disponible vs. ocupado ──────────────────────────── */}
+      <EspacioFisicoPanel planograma={planograma} />
 
       {/* ── Rentabilidad por espacio (SKU) ─────────────────────────────────── */}
       <EspacioPorSkuPanel slots={planograma.slots} />

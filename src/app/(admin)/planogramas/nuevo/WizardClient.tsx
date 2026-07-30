@@ -201,6 +201,8 @@ export function WizardClient({ tiendas, categorias }: Props) {
   const [nBandejas, setNBandejas] = useState(5)
   const [nPosiciones, setNPosiciones] = useState(20)
   const [incluirSkuC, setIncluirSkuC] = useState(false)
+  const [anchoCm, setAnchoCm] = useState<number | "">("")
+  const [altoBandejaCm, setAltoBandejaCm] = useState<number | "">("")
 
   // Step 2 state — preview
   const [previewSlots, setPreviewSlots] = useState<PreviewSlot[] | null>(null)
@@ -245,6 +247,8 @@ export function WizardClient({ tiendas, categorias }: Props) {
       agrupacion:         agrupacion,
       eye_level_bandejas: eyeLevel,
       incluir_sku_c:      incluirSkuC,
+      ancho_cm:           anchoCm === "" ? undefined : anchoCm,
+      alto_bandeja_cm:    altoBandejaCm === "" ? undefined : altoBandejaCm,
     }
   }
 
@@ -427,6 +431,24 @@ export function WizardClient({ tiendas, categorias }: Props) {
                 <Input id="n_posiciones" type="number" min={10} max={30} value={nPosiciones}
                   onChange={(e) => setNPosiciones(Math.min(30, Math.max(10, Number(e.target.value))))} />
                 <p className="text-xs text-muted-foreground">Entre 10 y 30</p>
+              </div>
+            </div>
+
+            {/* Dimensiones físicas del fixture (opcional) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="ancho_cm">Ancho real por bandeja (cm)</Label>
+                <Input id="ancho_cm" type="number" min={20} max={500} placeholder={`Estimado: ${nPosiciones * 6}`}
+                  value={anchoCm}
+                  onChange={(e) => setAnchoCm(e.target.value === "" ? "" : Number(e.target.value))} />
+                <p className="text-xs text-muted-foreground">Opcional — si no se indica, se estima 6cm × posición</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="alto_bandeja_cm">Alto libre por bandeja (cm)</Label>
+                <Input id="alto_bandeja_cm" type="number" min={5} max={100} placeholder="Estimado: 25"
+                  value={altoBandejaCm}
+                  onChange={(e) => setAltoBandejaCm(e.target.value === "" ? "" : Number(e.target.value))} />
+                <p className="text-xs text-muted-foreground">Opcional — para validar productos muy altos</p>
               </div>
             </div>
 

@@ -16,6 +16,10 @@ export type PlanogramSku = {
   precio_lista:   number
   marca_nombre:   string | null
   categoria_id:   string
+  // Dimensiones fisicas efectivas (override del SKU o default de su categoria)
+  alto_cm?:        number | null
+  ancho_cm?:       number | null
+  profundidad_cm?: number | null
   // Optional KPI fields (present in editor pool)
   avg_gmroi?:      number | null
   avg_sellthru?:   number | null
@@ -36,6 +40,8 @@ export type PlanogramData = {
   nombre:        string
   n_bandejas:    number
   n_posiciones:  number
+  ancho_cm?:        number | null
+  alto_bandeja_cm?: number | null
   fecha_desde:   string | null
   fecha_hasta:   string | null
   tienda:        { id: string; nombre: string; ciudad: string }

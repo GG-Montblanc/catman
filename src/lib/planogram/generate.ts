@@ -14,6 +14,8 @@ export type GenerateConfig = {
   eye_level_bandejas: number[] // default [2,3]
   incluir_sku_c: boolean       // incluir SKUs de baja rotación (gmroi < 0.5)
   sku_ids?: string[]           // si se especifican, usar solo estos SKUs
+  ancho_cm?: number           // ancho fisico real disponible por bandeja, en cm
+  alto_bandeja_cm?: number    // alto libre por bandeja, en cm
 }
 
 export type GeneratedSlot = {
