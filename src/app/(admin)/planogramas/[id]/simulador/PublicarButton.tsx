@@ -14,9 +14,10 @@ import { publicarPlanograma } from "./actions"
 
 type Props = {
   planogramaId: string
+  disabled?: boolean
 }
 
-export function PublicarButton({ planogramaId }: Props) {
+export function PublicarButton({ planogramaId, disabled }: Props) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ token: string; url: string } | null>(null)
   const [open, setOpen] = useState(false)
@@ -50,7 +51,8 @@ export function PublicarButton({ planogramaId }: Props) {
         variant="default"
         size="sm"
         onClick={handleClick}
-        disabled={loading}
+        disabled={loading || disabled}
+        title={disabled ? "Solo un admin puede publicar planogramas" : undefined}
         className="gap-1.5"
       >
         {loading ? (

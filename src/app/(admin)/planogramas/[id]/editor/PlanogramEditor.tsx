@@ -308,9 +308,10 @@ function SkuPool({ skus, busqueda, onBusqueda }: { skus: SkuInfo[]; busqueda: st
 interface Props {
   planograma: PlanogramData
   skusPool:   PlanogramSku[]
+  puedeEditar?: boolean
 }
 
-export function PlanogramEditor({ planograma, skusPool }: Props) {
+export function PlanogramEditor({ planograma, skusPool, puedeEditar = true }: Props) {
   const [isPending, startTransition] = useTransition()
   const [busqueda, setBusqueda]      = useState("")
   const [activeId, setActiveId]      = useState<string | null>(null)
@@ -358,6 +359,7 @@ export function PlanogramEditor({ planograma, skusPool }: Props) {
 
   // ── Drag handlers ─────────────────────────────────────────────────────────
   function handleDragStart(e: DragStartEvent) {
+    if (!puedeEditar) return
     setActiveId(e.active.id as string)
     setActiveSku((e.active.data.current as { sku: SkuInfo })?.sku ?? null)
   }
@@ -365,6 +367,7 @@ export function PlanogramEditor({ planograma, skusPool }: Props) {
   function handleDragEnd(e: DragEndEvent) {
     setActiveId(null)
     setActiveSku(null)
+    if (!puedeEditar) return
     const { active, over } = e
     if (!over) return
 
@@ -424,7 +427,14 @@ export function PlanogramEditor({ planograma, skusPool }: Props) {
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-xl font-bold tracking-tight">{planograma.nombre}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl font-bold tracking-tight">{planograma.nombre}</h1>
+              {!puedeEditar && (
+                <span className="rounded-full bg-muted text-muted-foreground text-xs px-2 py-0.5 font-medium">
+                  👁️ Solo lectura
+                </span>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">
               🏬 {planograma.tienda.nombre} · {planograma.tienda.ciudad} &nbsp;·&nbsp;
               🏷️ {planograma.categoria.nombre}
@@ -434,7 +444,8 @@ export function PlanogramEditor({ planograma, skusPool }: Props) {
             <Button
               size="sm" variant="outline"
               onClick={handleGuardar}
-              disabled={isPending || stats.changed === 0}
+              disabled={isPending || stats.changed === 0 || !puedeEditar}
+              title={!puedeEditar ? "Solo un admin puede editar planogramas" : undefined}
               className="gap-1.5"
             >
               {isPending

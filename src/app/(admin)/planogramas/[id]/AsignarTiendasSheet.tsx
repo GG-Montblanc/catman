@@ -33,9 +33,11 @@ type Asignacion = {
 export function AsignarTiendasSheet({
   planogramaId,
   planogramaNombre,
+  readOnly,
 }: {
   planogramaId: string
   planogramaNombre: string
+  readOnly?: boolean
 }) {
   const [open, setOpen]               = useState(false)
   const [tiendas, setTiendas]         = useState<Tienda[]>([])
@@ -191,10 +193,12 @@ export function AsignarTiendasSheet({
                       <button
                         key={tienda.id}
                         onClick={() => toggleTienda(tienda.id)}
-                        disabled={isSaving}
+                        disabled={isSaving || readOnly}
+                        title={readOnly ? "Solo un admin puede asignar tiendas" : undefined}
                         className={cn(
                           "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40",
-                          isAssigned && "bg-[oklch(0.97_0.01_358)]"
+                          isAssigned && "bg-[oklch(0.97_0.01_358)]",
+                          readOnly && "cursor-not-allowed opacity-70"
                         )}
                       >
                         {/* Check or Plus */}

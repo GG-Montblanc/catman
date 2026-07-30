@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserRole } from "@/lib/auth/role"
 import { SimuladorClient } from "./SimuladorClient"
 import { QrButton } from "../mobile/QrSheet"
 import type { PlanogramData } from "@/lib/planogram/types"
@@ -22,6 +23,7 @@ export default async function SimuladorPage({ params }: Props) {
   if (error || !data) notFound()
 
   const planograma = data as PlanogramData
+  const rol = await getCurrentUserRole()
 
   return (
     <div className="space-y-5">
@@ -33,7 +35,7 @@ export default async function SimuladorPage({ params }: Props) {
         </div>
         <QrButton planogramaId={id} nombre={planograma.nombre} />
       </div>
-      <SimuladorClient planograma={planograma} />
+      <SimuladorClient planograma={planograma} puedeEditar={rol === "admin"} />
     </div>
   )
 }

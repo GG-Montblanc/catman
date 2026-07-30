@@ -9,7 +9,7 @@ import { NavSidebar } from "./NavSidebar";
 export function MobileNav({
   user,
 }: {
-  user: { nombre: string; email: string };
+  user: { nombre: string; email: string; rol?: "admin" | "analyst" };
 }) {
   const [open, setOpen] = useState(false);
   return (

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserRole } from "@/lib/auth/role";
 import { NavSidebar } from "@/components/layout/NavSidebar";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { Brand } from "@/components/layout/Brand";
@@ -16,12 +17,15 @@ export default async function AdminLayout({
 
   if (!user) redirect("/login");
 
+  const rol = await getCurrentUserRole();
+
   const userInfo = {
     nombre:
       (user.user_metadata?.nombre as string | undefined) ??
       user.email?.split("@")[0] ??
       "Usuario",
     email: user.email ?? "",
+    rol,
   };
 
   return (

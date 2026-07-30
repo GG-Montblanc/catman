@@ -49,9 +49,9 @@ function KpiStat({ label, value, sub, highlight }: KpiStatProps) {
   )
 }
 
-type Props = { planograma: PlanogramData }
+type Props = { planograma: PlanogramData; puedeEditar?: boolean }
 
-export function SimuladorClient({ planograma }: Props) {
+export function SimuladorClient({ planograma, puedeEditar = true }: Props) {
   const [layer, setLayer]               = useState<HeatmapLayer>("gmroi")
   const [openSwap, setOpenSwap]         = useState(false)
   const [activeSlot, setActiveSlot]     = useState<PlanogramSlot | null>(null)
@@ -59,10 +59,11 @@ export function SimuladorClient({ planograma }: Props) {
   const [pendingSwaps, setPendingSwaps] = useState<Map<string, PendingSwap>>(new Map())
 
   const handleSlotClick = useCallback((slot: PlanogramSlot, kpis: SlotKpis | null) => {
+    if (!puedeEditar) return
     setActiveSlot(slot)
     setActiveKpis(kpis)
     setOpenSwap(true)
-  }, [])
+  }, [puedeEditar])
 
   const handleSwapConfirm = useCallback((swap: PendingSwap) => {
     setPendingSwaps(prev => {
@@ -113,6 +114,11 @@ export function SimuladorClient({ planograma }: Props) {
                 {pendingCount} cambio{pendingCount !== 1 ? "s" : ""} pendiente{pendingCount !== 1 ? "s" : ""}
               </span>
             )}
+            {!puedeEditar && (
+              <span className="rounded-full bg-muted text-muted-foreground text-xs px-2 py-0.5 font-medium">
+                👁️ Solo lectura
+              </span>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             🏬 {planograma.tienda.nombre} · {planograma.tienda.ciudad} &nbsp;·&nbsp;
@@ -149,9 +155,10 @@ export function SimuladorClient({ planograma }: Props) {
           <AsignarTiendasSheet
             planogramaId={planograma.id}
             planogramaNombre={planograma.nombre}
+            readOnly={!puedeEditar}
           />
           <VersionHistorySheet planogramaId={planograma.id} />
-          <PublicarButton planogramaId={planograma.id} />
+          <PublicarButton planogramaId={planograma.id} disabled={!puedeEditar} />
         </div>
       </div>
 

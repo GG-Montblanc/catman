@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserRole } from "@/lib/auth/role"
 import { PlanogramEditor } from "./PlanogramEditor"
 import type { PlanogramData } from "@/lib/planogram/types"
 
@@ -21,6 +22,7 @@ export default async function EditorPage({ params }: Props) {
   if (error || !data) notFound()
 
   const planograma = data as PlanogramData
+  const rol = await getCurrentUserRole()
 
   // ── Load pool SKUs: all subcategories + KPIs ──────────────────────────────
   // 1. Resolve category ruta for descendant matching
@@ -149,7 +151,7 @@ export default async function EditorPage({ params }: Props) {
         </a>
       </div>
 
-      <PlanogramEditor planograma={planograma} skusPool={skusPool} />
+      <PlanogramEditor planograma={planograma} skusPool={skusPool} puedeEditar={rol === "admin"} />
     </div>
   )
 }

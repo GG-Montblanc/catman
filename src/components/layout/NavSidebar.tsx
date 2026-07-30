@@ -14,7 +14,7 @@ export function NavSidebar({
   user,
   onNavigate,
 }: {
-  user: { nombre: string; email: string };
+  user: { nombre: string; email: string; rol?: "admin" | "analyst" };
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
@@ -114,8 +114,22 @@ export function NavSidebar({
 
       <div className="border-t border-sidebar-border p-4">
         <div className="mb-3">
-          <div className="text-sm font-medium text-sidebar-foreground">
-            {user.nombre}
+          <div className="flex items-center gap-1.5">
+            <div className="text-sm font-medium text-sidebar-foreground">
+              {user.nombre}
+            </div>
+            {user.rol && (
+              <span
+                className={cn(
+                  "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
+                  user.rol === "admin"
+                    ? "bg-sidebar-primary/20 text-sidebar-primary"
+                    : "bg-sidebar-accent text-sidebar-foreground/60"
+                )}
+              >
+                {user.rol === "admin" ? "Admin" : "Analyst"}
+              </span>
+            )}
           </div>
           <div className="truncate text-xs text-sidebar-foreground/60">
             {user.email}
