@@ -97,12 +97,19 @@ export function PlanogramasClient({ planogramas }: Props) {
             {planogramas.length} planograma{planogramas.length !== 1 ? "s" : ""} en {tiendaCount} tienda{tiendaCount !== 1 ? "s" : ""}
           </p>
         </div>
-        <Button asChild style={{ background: "var(--brand-magenta)", color: "#fff" }}>
-          <Link href="/planogramas/nuevo">
-            <Plus className="h-4 w-4 mr-1" />
-            Nuevo planograma
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/planogramas/reportes">
+              Ventas por posición
+            </Link>
+          </Button>
+          <Button asChild style={{ background: "var(--brand-magenta)", color: "#fff" }}>
+            <Link href="/planogramas/nuevo">
+              <Plus className="h-4 w-4 mr-1" />
+              Nuevo planograma
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
