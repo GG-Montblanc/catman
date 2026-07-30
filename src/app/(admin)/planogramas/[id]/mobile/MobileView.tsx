@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
-import { Check, Package, MapPin } from "lucide-react"
+import { useState, useEffect, useRef, useCallback } from "react"
+import { Check, Package, MapPin, Camera, Trash2, Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
 
 type SkuMobile = {
   id: string
@@ -27,8 +28,42 @@ type MobileData = {
   bandejas: SlotMobile[]
 }
 
+type FotoCompliance = {
+  id: string
+  bandeja: number | null
+  foto_url: string
+  nota: string | null
+  subido_por_nombre: string | null
+  subido_en: string
+}
+
 export function MobileView({ data }: { data: MobileData }) {
+  const sb = createClient()
+  const planogramaId = data.planograma.id
+
   const [done, setDone] = useState<Set<string>>(new Set())
+  const [fotos, setFotos] = useState<FotoCompliance[]>([])
+  const [subiendo, setSubiendo] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const cargarChecklist = useCallback(async () => {
+    const { data: rows } = await (sb.rpc as any)("get_checklist_planograma", { p_planograma_id: planogramaId })
+    const next = new Set<string>()
+    for (const r of rows ?? []) {
+      if (r.cumplido) next.add(`${r.bandeja}-${r.posicion}`)
+    }
+    setDone(next)
+  }, [sb, planogramaId])
+
+  const cargarFotos = useCallback(async () => {
+    const { data: rows } = await (sb.rpc as any)("get_fotos_compliance", { p_planograma_id: planogramaId })
+    setFotos((rows ?? []) as FotoCompliance[])
+  }, [sb, planogramaId])
+
+  useEffect(() => {
+    cargarChecklist()
+    cargarFotos()
+  }, [cargarChecklist, cargarFotos])
 
   const slots = (data.bandejas ?? []).sort((a, b) =>
     a.bandeja !== b.bandeja ? a.bandeja - b.bandeja : a.posicion - b.posicion
@@ -36,12 +71,51 @@ export function MobileView({ data }: { data: MobileData }) {
   const total = slots.length
   const completados = done.size
 
-  function toggle(key: string) {
+  function toggle(bandeja: number, posicion: number) {
+    const key = `${bandeja}-${posicion}`
+    const nuevoValor = !done.has(key)
     setDone(prev => {
       const next = new Set(prev)
-      next.has(key) ? next.delete(key) : next.add(key)
+      nuevoValor ? next.add(key) : next.delete(key)
       return next
     })
+    // Persistir — optimista, sin bloquear la UI
+    ;(sb.rpc as any)("marcar_checklist_item", {
+      p_planograma_id: planogramaId,
+      p_bandeja: bandeja,
+      p_posicion: posicion,
+      p_cumplido: nuevoValor,
+    })
+  }
+
+  async function handleSubirFoto(file: File) {
+    setSubiendo(true)
+    try {
+      const ext = file.name.split(".").pop() ?? "jpg"
+      const path = `${planogramaId}/${Date.now()}.${ext}`
+      const { error: uploadError } = await sb.storage.from("compliance-fotos").upload(path, file)
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = sb.storage.from("compliance-fotos").getPublicUrl(path)
+      const { error: rpcError } = await (sb.rpc as any)("registrar_foto_compliance", {
+        p_planograma_id: planogramaId,
+        p_bandeja: null,
+        p_foto_url: urlData.publicUrl,
+        p_nota: null,
+      })
+      if (rpcError) throw rpcError
+      await cargarFotos()
+    } catch (err) {
+      alert(`Error al subir la foto: ${err instanceof Error ? err.message : "desconocido"}`)
+    } finally {
+      setSubiendo(false)
+    }
+  }
+
+  async function handleEliminarFoto(foto: FotoCompliance) {
+    if (!confirm("¿Eliminar esta foto?")) return
+    await (sb.rpc as any)("eliminar_foto_compliance", { p_foto_id: foto.id })
+    setFotos(prev => prev.filter(f => f.id !== foto.id))
   }
 
   // Group by bandeja
@@ -78,6 +152,55 @@ export function MobileView({ data }: { data: MobileData }) {
         </div>
       </div>
 
+      {/* Fotos de compliance */}
+      <div className="px-4 pt-4">
+        <div className="rounded-xl bg-white border p-3 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+              <Camera className="h-4 w-4" />
+              Fotos del planograma real
+            </p>
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={subiendo}
+              className="flex items-center gap-1 rounded-lg bg-[#d4177a] text-white text-xs font-medium px-3 py-1.5 disabled:opacity-60"
+            >
+              <Upload className="h-3 w-3" />
+              {subiendo ? "Subiendo…" : "Subir foto"}
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={e => {
+                const f = e.target.files?.[0]
+                if (f) handleSubirFoto(f)
+                e.target.value = ""
+              }}
+            />
+          </div>
+          {fotos.length === 0 ? (
+            <p className="text-xs text-gray-400 italic">Sin fotos aún — documenta cómo quedó el mueble real.</p>
+          ) : (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {fotos.map(f => (
+                <div key={f.id} className="relative shrink-0">
+                  <img src={f.foto_url} alt="" className="h-20 w-20 rounded-lg object-cover border" />
+                  <button
+                    onClick={() => handleEliminarFoto(f)}
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-rose-600 text-white flex items-center justify-center shadow"
+                  >
+                    <Trash2 className="h-2.5 w-2.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Content */}
       <div className="px-4 py-4 space-y-5">
         {Array.from(bandejas.entries()).map(([b, bSlots]) => {
@@ -108,7 +231,7 @@ export function MobileView({ data }: { data: MobileData }) {
                   return (
                     <button
                       key={key}
-                      onClick={() => toggle(key)}
+                      onClick={() => toggle(slot.bandeja, slot.posicion)}
                       className={cn(
                         "w-full flex items-center gap-3 rounded-xl p-3 text-left transition-all active:scale-[0.98] shadow-sm border",
                         isDone
