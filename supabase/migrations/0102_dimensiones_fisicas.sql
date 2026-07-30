@@ -255,6 +255,8 @@ GRANT EXECUTE ON FUNCTION public.get_planograma_con_kpis TO authenticated;
 -- del fixture real (wizard de creacion), para que el planograma nazca con
 -- capacidad fisica conocida en vez de depender siempre del fallback estimado.
 -- ============================================================================
+DROP FUNCTION IF EXISTS public.crear_planograma_generado(TEXT, UUID, UUID, INT, INT, JSONB);
+
 CREATE OR REPLACE FUNCTION public.crear_planograma_generado(
   p_nombre          TEXT,
   p_tienda_id       UUID,
