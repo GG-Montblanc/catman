@@ -23,11 +23,19 @@ export default async function SkusPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Catálogo SKUs</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Análisis de desempeño por producto — GMROI, Sellthru, MDI y más
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Catálogo SKUs</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Análisis de desempeño por producto — GMROI, Sellthru, MDI y más
+          </p>
+        </div>
+        <Link
+          href="/skus/importar"
+          className="shrink-0 whitespace-nowrap rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors"
+        >
+          Importar catálogo
+        </Link>
       </div>
 
       {/* View toggle */}
