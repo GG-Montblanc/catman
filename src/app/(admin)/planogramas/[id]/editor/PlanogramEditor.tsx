@@ -26,6 +26,24 @@ function slotKey(bandeja: number, posicion: number) { return `${bandeja}-${posic
 const SLOT_PREFIX = "slot:"
 const POOL_PREFIX = "pool:"
 
+// ─── Escala real ───────────────────────────────────────────────────────────────
+// El ancho de cada celda ya no es fijo -- es proporcional al ancho_cm real del
+// producto que contiene, para que lo que se ve corresponda a lo que fisicamente
+// cabe en la bandeja. El alto de la bandeja tambien refleja alto_bandeja_cm real.
+const PX_POR_CM = 8
+const CELL_MIN_W = 40
+const CELL_MIN_H = 70
+const ANCHO_POR_POSICION_FALLBACK = 6 // cm, cuando el planograma no tiene ancho_cm fisico definido
+
+function cellWidthPx(anchoCm: number | null | undefined, anchoPromedioCm: number) {
+  return Math.max(CELL_MIN_W, (anchoCm ?? anchoPromedioCm) * PX_POR_CM)
+}
+function cellHeightPx(altoBandejaCm: number | null | undefined) {
+  // Mismo factor px/cm que el ancho, para que la proporcion sea real -- con
+  // un techo razonable para que bandejas muy altas no rompan el layout.
+  return Math.min(220, Math.max(CELL_MIN_H, (altoBandejaCm ?? 25) * PX_POR_CM))
+}
+
 // ─── Colors ────────────────────────────────────────────────────────────────────
 function gmroiBg(v: number | null | undefined): string {
   if (v == null) return "hsl(var(--muted))"
@@ -83,9 +101,10 @@ function DraggableSku({ draggableId, sku, compact }: { draggableId: string; sku:
   )
 }
 
-// ─── Droppable shelf cell ───────────────────────────────────────────────────────
-function ShelfCell({ bandeja, posicion, sku, isEyeLevel }: {
+// ─── Droppable shelf cell (a escala real: ancho/alto proporcional a cm) ─────────
+function ShelfCell({ bandeja, posicion, sku, isEyeLevel, width, height }: {
   bandeja: number; posicion: number; sku: SkuInfo | undefined; isEyeLevel: boolean
+  width: number; height: number
 }) {
   const id = slotKey(bandeja, posicion)
   const { setNodeRef, isOver } = useDroppable({ id: SLOT_PREFIX + id })
@@ -100,33 +119,37 @@ function ShelfCell({ bandeja, posicion, sku, isEyeLevel }: {
     <div
       ref={setNodeRef}
       className={cn(
-        "border rounded transition-all flex items-center justify-center",
+        "relative border rounded transition-all flex items-center justify-center shrink-0",
         isOver && "bg-[oklch(0.62_0.20_358/0.1)] border-[var(--brand-magenta)]",
         !isOver && sku && gmroiColor,
         !isOver && !sku && "border-dashed border-border/50",
       )}
       style={{
-        width:       74,
-        height:      90,
+        width,
+        height,
         borderLeft:  isEyeLevel ? "3px solid var(--brand-magenta)" : undefined,
         background:  isOver ? undefined : sku ? "var(--card)" : "oklch(0.97 0 0)",
       }}
     >
+      <span className="absolute left-1 top-0.5 text-[8px] text-muted-foreground/40 font-medium leading-none">
+        {posicion}
+      </span>
       {sku ? (
         <DraggableSku draggableId={SLOT_PREFIX + id} sku={sku} compact />
-      ) : (
-        <span className="text-[9px] text-muted-foreground/30 font-medium">{posicion}</span>
-      )}
+      ) : null}
     </div>
   )
 }
 
-// ─── Shelf grid ────────────────────────────────────────────────────────────────
-function ShelfGrid({ nBandejas, nPosiciones, slots, eyeLevelBandejas }: {
+// ─── Shelf grid (a escala real) ─────────────────────────────────────────────────
+function ShelfGrid({ nBandejas, nPosiciones, slots, eyeLevelBandejas, anchoDisponibleCm, altoBandejaCm }: {
   nBandejas: number; nPosiciones: number; slots: SlotState; eyeLevelBandejas: Set<number>
+  anchoDisponibleCm: number; altoBandejaCm: number | null | undefined
 }) {
   const bandejas   = Array.from({ length: nBandejas },   (_, i) => i + 1)
   const posiciones = Array.from({ length: nPosiciones }, (_, i) => i + 1)
+  const anchoPromedioCm = anchoDisponibleCm / nPosiciones
+  const alturaCelda = cellHeightPx(altoBandejaCm)
 
   // Compute avg GMROI per bandeja for the label
   function avgGmroi(b: number): number | null {
@@ -137,42 +160,59 @@ function ShelfGrid({ nBandejas, nPosiciones, slots, eyeLevelBandejas }: {
     return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
   }
 
+  // Capacidad ocupada por bandeja (cm), para el indicador de espacio en vivo
+  function capacidad(b: number): { ocupado: number; pct: number } {
+    let ocupado = 0
+    for (const [k, sku] of slots.entries()) {
+      if (k.startsWith(`${b}-`)) ocupado += (sku.ancho_cm ?? anchoPromedioCm)
+    }
+    return { ocupado, pct: anchoDisponibleCm > 0 ? (ocupado / anchoDisponibleCm) * 100 : 0 }
+  }
+
   return (
     <div className="overflow-x-auto pb-2">
-      <div className="space-y-1.5 min-w-max">
-        {/* Column headers */}
-        <div className="flex items-center gap-1 pl-14">
-          {posiciones.map(p => (
-            <div key={p} className="w-[74px] text-center text-[9px] text-muted-foreground/60">{p}</div>
-          ))}
-        </div>
-
+      <div className="space-y-2.5 min-w-max">
         {bandejas.map(b => {
           const isEye = eyeLevelBandejas.has(b)
           const avg   = avgGmroi(b)
+          const cap   = capacidad(b)
+          const sobrecargado = cap.pct > 100
           return (
-            <div key={b} className="flex items-center gap-1">
-              {/* Bandeja label */}
-              <div className={cn(
-                "w-12 shrink-0 text-right pr-1.5",
-                isEye ? "text-[var(--brand-magenta)]" : "text-muted-foreground"
-              )}>
-                <p className={cn("text-[10px] font-bold", isEye && "font-extrabold")}>
-                  {isEye ? `★ B${b}` : `B${b}`}
-                </p>
-                {avg != null && (
-                  <p className="text-[8px] tabular-nums" style={{ color: gmroiBg(avg) }}>
-                    {avg.toFixed(1)}×
+            <div key={b} className="space-y-0.5">
+              <div className="flex items-center gap-1">
+                {/* Bandeja label */}
+                <div className={cn(
+                  "w-12 shrink-0 text-right pr-1.5",
+                  isEye ? "text-[var(--brand-magenta)]" : "text-muted-foreground"
+                )}>
+                  <p className={cn("text-[10px] font-bold", isEye && "font-extrabold")}>
+                    {isEye ? `★ B${b}` : `B${b}`}
                   </p>
-                )}
-              </div>
+                  {avg != null && (
+                    <p className="text-[8px] tabular-nums" style={{ color: gmroiBg(avg) }}>
+                      {avg.toFixed(1)}×
+                    </p>
+                  )}
+                </div>
 
-              {/* Cells */}
-              <div className="flex gap-0.5">
-                {posiciones.map(p => (
-                  <ShelfCell key={p} bandeja={b} posicion={p}
-                    sku={slots.get(slotKey(b, p))} isEyeLevel={isEye} />
-                ))}
+                {/* Cells — ancho proporcional al ancho_cm real de cada producto */}
+                <div className="flex gap-0.5 items-stretch">
+                  {posiciones.map(p => (
+                    <ShelfCell key={p} bandeja={b} posicion={p}
+                      sku={slots.get(slotKey(b, p))} isEyeLevel={isEye}
+                      width={cellWidthPx(slots.get(slotKey(b, p))?.ancho_cm, anchoPromedioCm)}
+                      height={alturaCelda}
+                    />
+                  ))}
+                </div>
+
+                {/* Indicador de capacidad fisica en vivo */}
+                <span className={cn(
+                  "ml-2 shrink-0 text-[10px] tabular-nums font-medium",
+                  sobrecargado ? "text-rose-600" : "text-muted-foreground"
+                )}>
+                  {sobrecargado && "⚠️ "}{cap.ocupado.toFixed(0)}/{anchoDisponibleCm.toFixed(0)}cm
+                </span>
               </div>
             </div>
           )
@@ -500,6 +540,8 @@ export function PlanogramEditor({ planograma, skusPool, puedeEditar = true }: Pr
               nPosiciones={planograma.n_posiciones}
               slots={slots}
               eyeLevelBandejas={eyeLevelBandejas}
+              anchoDisponibleCm={planograma.ancho_cm ?? planograma.n_posiciones * ANCHO_POR_POSICION_FALLBACK}
+              altoBandejaCm={planograma.alto_bandeja_cm}
             />
           </div>
 
@@ -514,7 +556,8 @@ export function PlanogramEditor({ planograma, skusPool, puedeEditar = true }: Pr
       <DragOverlay>
         {activeSku && (
           <div style={{
-            width: 74, height: 90,
+            width: cellWidthPx(activeSku.ancho_cm, (planograma.ancho_cm ?? planograma.n_posiciones * ANCHO_POR_POSICION_FALLBACK) / planograma.n_posiciones),
+            height: cellHeightPx(planograma.alto_bandeja_cm),
             background: "var(--card)",
             border: "1.5px solid var(--brand-magenta)",
             borderRadius: 6,
