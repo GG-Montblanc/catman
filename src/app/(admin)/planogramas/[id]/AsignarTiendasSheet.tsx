@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
+import { toast } from "sonner"
 
 type Tienda = {
   id: string
@@ -83,6 +84,8 @@ export function AsignarTiendasSheet({
         setAsignaciones(prev =>
           prev.map(a => a.id === existing.id ? { ...a, activa: !a.activa } : a)
         )
+      } else {
+        toast.error(`No se pudo actualizar la asignación: ${error.message}`)
       }
     } else {
       // New assignment
@@ -98,6 +101,8 @@ export function AsignarTiendasSheet({
 
       if (!error && data) {
         setAsignaciones(prev => [...prev, data as Asignacion])
+      } else if (error) {
+        toast.error(`No se pudo asignar la tienda: ${error.message}`)
       }
     }
     setSaving(null)
